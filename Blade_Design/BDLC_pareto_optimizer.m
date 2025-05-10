@@ -108,7 +108,7 @@ function F = objectives(x)
     % ==== STATIC INPUTS (NON-DESIGN VARIABLES) ====
     % Inputs are for rotor for now
     R = 50;                 % Tip Radius                i| mm
-    R_LE =x 0.8;             % Leading edge radius       i| mm
+    R_LE = 0.8;             % Leading edge radius       i| mm
     R_TE = 0.6;             % Trailing edge radius      i| mm
     
     % Design Variable - ttc % Thickness to Chord ratio  i| %
