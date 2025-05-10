@@ -1,0 +1,16 @@
+Engine Struct Fields
+
+num_comp_stages
+num_turb_stages
+
+HP_RPM
+LP_RPM
+
+
+
+turb_P1
+turb_P01
+turb_T1
+turb_T01
+turb_P2
+turb_P02
