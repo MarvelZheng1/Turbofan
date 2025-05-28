@@ -1,8 +1,5 @@
 clear;clc;close all
-load("Turbofan.mat")
-
-
-%% ==== User-Defined Design Variables ====
+%% ======== User-Defined Design Variables ========
 
 rpm = 40000;
 
@@ -10,68 +7,38 @@ num_stages = 4;
 num_stations = num_stages * 2 + 1;
 
 num_surfaces = 50;
-m_dot = 0.5;
 
-%% ==== Inputs from the sizing script ====
+%% ======== Inputs from the sizing script ========
+load("Turbofan.mat")
 T0_in  = Turbofan.Thermos.S2.T0;
 T0_out  = Turbofan.Thermos.S25.T0;
 P0_in = Turbofan.Thermos.S2.P0;
 gamma  = Turbofan.Specs.Gammas.c_lp;
 R      = Turbofan.Specs.Info.Ra;
 cp     = Turbofan.Cp.c_LP;
+target_m_dot = Turbofan.Specs.Info.mass_flow_air;
 
-
-% ==== Dimensionless Performance Parameters, per stage ====
+% ======== Dimensionless Performance Parameters, per stage ========
 phi_c_vec = [0.7, 0.6, 0.5, 0.4];        % Flow coefficient
 psi_c_vec = [0.3, 0.3, 0.3, 0.3];        % Work coefficient ----> to be determined from temperature rises later
 R_c_vec   = [0.5, 0.5, 0.5, 0.5];        % Degree of reaction
 
 
-%% ==== Startup Fluff ====
+%% ======== Startup Fluff ========
 % Hub and Shroud Geometry Initialization
 % Vector along axis
-r_shroud_vec = ones(1, num_stations)*0.001* 150;
+r_shroud_vec = ones(1, num_stations)*0.001* 110;
 r_hub_vec    = ones(1, num_stations)*0.001* 75;
-
-% Mean Radius Initialization
-r_mean_vec   = ones(1, num_stations);
-r_mean_real_vec   = ones(1, num_stations);
-
 % Misc
 ang_vel = rpm * 2 * pi / 60;
-% y = r - r_hub
-r_grid = cell(1,num_stations); % {1} = leftmost quasi-normal  |  (1) = hub radius  |  Basically {x}(y) is cartesian
-y_grid = cell(1,num_stations); % {1} = leftmost quasi-normal  |  (1) = hub radius  |  Basically {x}(y) is cartesian
 
-% Find meanline radii
-syms r_mean_sym;
-for i = 1:num_stations
-    r_mean_sols = solve(r_shroud_vec(i)^2-r_mean_sym^2 == r_mean_sym^2-r_hub_vec(i)^2, r_mean_sym);
-    r_mean_real_vec(i) = double(r_mean_sols(2));
-    r_grid{i} = linspace(r_hub_vec(i), r_shroud_vec(i), num_surfaces);         % Grid of y-values, to be used in flow-field analysis
-end
+[r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel);
 
-for i = 1:num_stations
-    y_grid{i} = r_grid{i} - r_grid{i}(1);
-end
-
-r_mean_dist = r_grid{1}-r_mean_real_vec(1);
-[~, mean_index] = min(abs(r_mean_dist));
-for i = 1:num_stations
-    r_mean_vec(i) = r_grid{i}(mean_index);                       % Y-value streamline closest to the mean radius of station 1 (equal annulus area above and below mean radius)
-end
-
-
-clear i r_mean_dist r_mean_sols r_mean_sym
-
-% Find meanline U velocities (returns mean radius values of U axially)
-U_r_mean_vec = ang_vel.*r_mean_vec;
-
-
+%% ======== Station 1 First Pass ========
 % ==== Wm_init Initialization ====
 Wm_init_1 = phi_c_vec(1) * U_r_mean_vec(1);
-Wm_init_2 = phi_c_vec(2) * U_r_mean_vec(3);
-Wm_init_3 = (Wm_init_1 + Wm_init_2) / 2;
+% Wm_init_2 = phi_c_vec(2) * U_r_mean_vec(3);
+% Wm_init_3 = (Wm_init_1 + Wm_init_2) / 2;
 
 C_theta_1 = eleven_four(R_c_vec(1), psi_c_vec(1), U_r_mean_vec(1), r_mean_vec(1), r_grid{1}, 1, 1);
 U_1 = ang_vel .* r_grid{1};
@@ -86,11 +53,24 @@ I_init = h0 - U_1.*C_theta_1;               % Rothalpy              | Spanwise d
 S_init = zeros(size(U_1));                  % Entropy               | Spanwise distribution
 T_init = T0_in - C_init.^2./(2*cp);         % Static temperature    | Spanwise distribution
 
-
 W_m_1 = seven_fifteen(y_grid{1}, I_init, S_init, r_grid{1}, T_init, C_theta_1, W_theta_1, Wm_init_1, mean_index);
 stat1_thermos = station_thermodynamics(W_m_1, C_theta_1, U_1, S_init, T0_in, P0_in, cp, gamma, L_init, R);
-adjusted_hub_radii = annulus_adjust(y_grid{1}, r_grid{1}, stat1_thermos.rho, W_m_1);
+[new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y_grid{1}, r_grid{1}, stat1_thermos.rho, W_m_1, target_m_dot);
 
+%% Station 1 Zoom Time
+while abs(current_m_dot - target_m_dot) > 0.001
+    r_hub_vec(1) = new_radius_ish;
+    [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel);
+
+    C_theta_1 = eleven_four(R_c_vec(1), psi_c_vec(1), U_r_mean_vec(1), r_mean_vec(1), r_grid{1}, 1, 1);
+    U_1 = ang_vel .* r_grid{1};
+    W_theta_1 = C_theta_1 - U_1;
+
+    W_m_1 = seven_fifteen(y_grid{1}, stat1_thermos.I, stat1_thermos.S, r_grid{1}, stat1_thermos.T, C_theta_1, W_theta_1, Wm_init_1, mean_index);
+    stat1_thermos = station_thermodynamics(W_m_1, C_theta_1, U_1, stat1_thermos.S, T0_in, P0_in, cp, gamma, L_init, R);
+    [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y_grid{1}, r_grid{1}, stat1_thermos.rho, W_m_1, target_m_dot);
+    fprintf("->")
+end
 
 
 function thermos = station_thermodynamics(W_m, C_theta, U, S, T0, P0, cp, gamma, loss, R)
@@ -115,7 +95,7 @@ function thermos = station_thermodynamics(W_m, C_theta, U, S, T0, P0, cp, gamma,
     thermos.I = I;
 end
 
-function current_m_dot = annulus_adjust(y, r, rho, W_m)
+function [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y, r, rho, W_m, target_m_dot)
     current_m_dot = 0;
     % ==== Assumptions ====
     Kw = 1;                 % Ignoring curvature for now
@@ -125,6 +105,14 @@ function current_m_dot = annulus_adjust(y, r, rho, W_m)
         dA = 2*pi*r(i)*Kw*cosd(ep(i))*(y(i+1)-y(i));
         current_m_dot = current_m_dot + rho(i) * W_m(i) * dA;
     end
+
+    r_s = r(end);
+    r_h = r(1);
+    annulus_current = pi * (r_s^2 - r_h^2);
+    annulus_new = annulus_current * target_m_dot / current_m_dot;
+
+    new_radius = sqrt(r_s^2 - annulus_new/pi);
+    new_radius_ish = r_h + (3/4) * (new_radius - r_h);
 end
 
 function C_theta_1 = eleven_four(Rc_c1, psi_c1, U_c1, r_c1, r_1, n, m)
@@ -175,4 +163,36 @@ function W_m = seven_fifteen(y, I, s, r, T, C_theta, W_theta, Wm_init, mean_inde
         dWm_dy = f1(i)*W_m(i) + f3(i)/W_m(i);
         W_m(i-1) = W_m(i) - dy * dWm_dy;
     end
+end
+
+function [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel)
+    % ==== Mean Radius Initialization ====
+    r_mean_vec   = ones(1, num_stations);
+    r_mean_real_vec   = ones(1, num_stations);
+    
+    % ==== y-grid and r_grid Initialization ====
+    % y = r - r_hub
+    r_grid = cell(1,num_stations); % {1} = leftmost quasi-normal  |  (1) = hub radius  |  Basically {x}(y) is cartesian
+    y_grid = cell(1,num_stations); % {1} = leftmost quasi-normal  |  (1) = hub radius  |  Basically {x}(y) is cartesian
+    
+    % ==== Find meanline radii ====
+    syms r_mean_sym;
+    for i = 1:num_stations
+        r_mean_sols = solve(r_shroud_vec(i)^2-r_mean_sym^2 == r_mean_sym^2-r_hub_vec(i)^2, r_mean_sym);
+        r_mean_real_vec(i) = double(r_mean_sols(2));
+        r_grid{i} = linspace(r_hub_vec(i), r_shroud_vec(i), num_surfaces);         % Grid of radii values
+    end
+    
+    for i = 1:num_stations
+        y_grid{i} = r_grid{i} - r_grid{i}(1);           % Creates y-grid, for meridionial analysis
+    end
+    
+    r_mean_dist = r_grid{1}-r_mean_real_vec(1);
+    [~, mean_index] = min(abs(r_mean_dist));
+    for i = 1:num_stations
+        r_mean_vec(i) = r_grid{i}(mean_index);          % Y-value streamline closest to the mean radius of station 1 (equal annulus area above and below mean radius)
+    end
+
+    % Find meanline U velocities (returns mean radius values of U axially)
+    U_r_mean_vec = ang_vel.*r_mean_vec;
 end
