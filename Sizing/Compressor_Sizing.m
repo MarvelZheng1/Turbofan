@@ -9,24 +9,33 @@ syms Wm_sym         % Meridional velocity
 syms I_sym          % Rothalpy
 syms s_sym          % Entropy
 
+%% User-Defined Design Variables:
 
 rpm = 40000;
-ang_vel = rpm * 2 * pi / 60;
 
 num_stages = 4;
 num_stations = num_stages * 2 + 1;
 
 num_surfaces = 50;
 
-r_shroud_vec = ones(1, num_stations)*150;
-r_hub_vec    = ones(1, num_stations)*75;%0.4.*(linspace(1,num_stations,9)-1).^2+75; %linspace(75, 100, num_stations);%ones(1, num_stations)*75;
-r_mean_vec   = ones(1, num_stations);
-r_mean_real_vec   = ones(1, num_stations);
-
+% Dimensionless Performance Parameters
 phi_c_vec = [0.7, 0.7, 0.6, 0.6, 0.5, 0.5, 0.4, 0.4, 0.3];        % Flow coefficient
 psi_c_vec = ones(1, num_stations)*0.3;        % Work coefficient
 R_c_vec   = ones(1, num_stations)*0.5;        % Degree of reaction
 
+
+%% Startup Fluff
+% Hub and Shroud Geometry Initialization
+% Vector along axis
+r_shroud_vec = ones(1, num_stations)*150;
+r_hub_vec    = ones(1, num_stations)*75;
+
+% Mean Radius Initialization
+r_mean_vec   = ones(1, num_stations);
+r_mean_real_vec   = ones(1, num_stations);
+
+% Misc
+ang_vel = rpm * 2 * pi / 60;
 y_grid = cell(1,num_stations);
 
 % Find meanline radii
@@ -45,29 +54,16 @@ end
 
 clear i r_mean_dist r_mean_sols r_mean_sym
 
-% Find meanline U velocities
+% Find meanline U velocities (returns mean radius values of U axially)
 U_r_mean_vec = ang_vel.*r_mean_vec;
 
+% Find 
 [Stat1, Stat2, Stat3] = velocity_triangle_generation(1, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, false);
-[  ~  , Stat4, Stat5] = velocity_triangle_generation(2, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, false);
-[  ~  , Stat6, Stat7] = velocity_triangle_generation(3, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, false);
-[  ~  , Stat8, Stat9] = velocity_triangle_generation(4, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, true);
 
-Station_Vel_Triangles = {Stat1, Stat2, Stat3, Stat4, Stat5, Stat6, Stat7, Stat8, Stat9};
 
-scale = 1e-5;
-hold on
-for i = 1:length(Station_Vel_Triangles)
-    plot_vel_triangle([0,0], Station_Vel_Triangles{i}, scale)
-end
 
-figure()
-scale = 1e-5;
-hold on
-for i = 1:length(Station_Vel_Triangles)
-    
-    plot_vel_triangle([4*(i-1),0], Station_Vel_Triangles{i}, scale)
-end
+
+
 
 function [Loc_Stat1, Loc_Stat2, Loc_Stat3] = velocity_triangle_generation(stage_num, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, plot, last)
     
@@ -121,38 +117,38 @@ function [Loc_Stat1, Loc_Stat2, Loc_Stat3] = velocity_triangle_generation(stage_
     % end
 
     % Velocity Triangles for stage stations 1 2 and 3
-    U1 = [0,U_c1];
-    C1 = [C_mc1, C_theta_1(closest)];
-    W1 = C1-U1;
-
-    U2 = [0,U_c2];
-    C2 = [C_mc2, C_theta_2(closest)];
-    W2 = C2-U2;
-
-    U3 = [0,U_c3];
-    C3 = [C_mc3, C_theta_3(closest)];
-    W3 = C3-U3;
-
-    % Function return packaging
-    Loc_Stat1 = {U1, W1, C1};
-    Loc_Stat2 = {U2, W2, C2};
-    Loc_Stat3 = {U3, W3, C3};
-    
-    if plot
-        figure(Name='Stage Triangle Series')
-        hold on
-        scale = 1e-5;
-        plot_vel_triangle([0,0], Loc_Stat1, scale)
-        plot_vel_triangle([4,0], Loc_Stat2, scale)
-        plot_vel_triangle([8,0], Loc_Stat3, scale)
-    
-        figure(Name='Stage Triangle Superimposed')
-        hold on
-        scale = 1e-5;
-        plot_vel_triangle([0,0], Loc_Stat1, scale)
-        plot_vel_triangle([0,0], Loc_Stat2, scale)
-        plot_vel_triangle([0,0], Loc_Stat3, scale)
-    end
+    % U1 = [0,U_c1];
+    % C1 = [C_mc1, C_theta_1(closest)];
+    % W1 = C1-U1;
+    % 
+    % U2 = [0,U_c2];
+    % C2 = [C_mc2, C_theta_2(closest)];
+    % W2 = C2-U2;
+    % 
+    % U3 = [0,U_c3];
+    % C3 = [C_mc3, C_theta_3(closest)];
+    % W3 = C3-U3;
+    % 
+    % % Function return packaging
+    % Loc_Stat1 = {U1, W1, C1};
+    % Loc_Stat2 = {U2, W2, C2};
+    % Loc_Stat3 = {U3, W3, C3};
+    % 
+    % if plot
+    %     figure(Name='Stage Triangle Series')
+    %     hold on
+    %     scale = 1e-5;
+    %     plot_vel_triangle([0,0], Loc_Stat1, scale)
+    %     plot_vel_triangle([4,0], Loc_Stat2, scale)
+    %     plot_vel_triangle([8,0], Loc_Stat3, scale)
+    % 
+    %     figure(Name='Stage Triangle Superimposed')
+    %     hold on
+    %     scale = 1e-5;
+    %     plot_vel_triangle([0,0], Loc_Stat1, scale)
+    %     plot_vel_triangle([0,0], Loc_Stat2, scale)
+    %     plot_vel_triangle([0,0], Loc_Stat3, scale)
+    % end
 
     % for i = 1:num_surfaces
     %     U = [0,U_c1];
@@ -175,7 +171,7 @@ function plot_vel_triangle(origin, triangle, scale)
 end
 
 
-function W_m = bruh(y, I, s, r, C_theta, phi, Wm, Mm, M_theta, ep, Km, W_theta)
+function W_m = seven_fifteen_i_guess(y, I, s, r, C_theta, phi, Wm, Mm, M_theta, ep, Km, W_theta)
     dI_dy = gradient(I, y);
     ds_dy = gradient(s, y);
     drC_dy = gradient(r.*C_theta, y);
@@ -202,12 +198,26 @@ end
 
 
 
+% [  ~  , Stat4, Stat5] = velocity_triangle_generation(2, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, false);
+% [  ~  , Stat6, Stat7] = velocity_triangle_generation(3, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, false);
+% [  ~  , Stat8, Stat9] = velocity_triangle_generation(4, r_mean_vec, U_r_mean_vec, closest, phi_c_vec, psi_c_vec, R_c_vec, y_grid, false, true);
+% 
+% Station_Vel_Triangles = {Stat1, Stat2, Stat3, Stat4, Stat5, Stat6, Stat7, Stat8, Stat9};
 
 
+% scale = 1e-5;
+% hold on
+% for i = 1:length(Station_Vel_Triangles)
+%     plot_vel_triangle([0,0], Station_Vel_Triangles{i}, scale)
+% end
 
-
-
-
+% figure()
+% scale = 1e-5;
+% hold on
+% for i = 1:length(Station_Vel_Triangles)
+% 
+%     plot_vel_triangle([4*(i-1),0], Station_Vel_Triangles{i}, scale)
+% end
 
 
 

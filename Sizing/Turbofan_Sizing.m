@@ -1,30 +1,41 @@
 clear;clc;clf
 
-M_f = 0.85;                    % Flight mach number 
-g_cold = 1.401;             % Pre-combustion specific heat ratio (assumed constant)
-g_hot = 1.33;               % Post-combustion specific heat ratio (assumed constant) 
-% specHeat_cold = 1004;       % specific heat for cold components [J/kgK]
-% specHeat_hot = 1156;        % specific heat for hot components [J/kgK]
-QR = 45000000;    % heat of reaction of jetA [J/kg]
+M_f = 0.85;                     % Flight mach number 
+g_cold = 1.401;                 % Pre-combustion specific heat ratio (assumed constant)
+g_hot = 1.33;                   % Post-combustion specific heat ratio (assumed constant) 
+% specHeat_cold = 1004;         % specific heat for cold components [J/kgK]
+% specHeat_hot = 1156;          % specific heat for hot components [J/kgK]
+QR = 45000000;                  % heat of reaction of jetA [J/kg]
 
 
-combustion_temp = 1750;     % Temperature of combustion (burner outlet temperature, T04)
-Rp = 287;                     % Gas constants of products
-Ra = 287;                     % Gas constants of air
+combustion_temp = 1750;         % Temperature of combustion (burner outlet temperature, T04)
+Rp = 287;                       % Gas constants of products
+Ra = 287;                       % Gas constants of air
 
-bypass = 10;                 % Bypass ratio!!
+bypass = 10;                    % Bypass ratio!!
 num_HP_compressors = 1;
 num_LP_compressors = 1;
 num_HP_turbines    = 1;
 num_LP_turbines    = 1;
 
+Info = struct( ...
+    "M_f",              M_f, ...
+    "g_cold",           g_cold, ...
+    "g_hot",            g_hot, ...
+    "Rp",               Rp, ...
+    "Ra",               Ra, ...
+    "combustion_temp",  combustion_temp, ...
+    "QR",               QR, ...
+    "bypass",           bypass ...
+    );
+
 % Design Pressure Ratios
-Prf = 1.54;        % Fan           outlet/inlet, P02/P015
-Prc_lp = 5;        % Compressor    outlet/inlet, P03/P02
-Prc_hp = 13/5;        % Compressor    outlet/inlet, P03/P02
-Prb  = 0.95;        % Burner        outlet/inlet, P04/P03
-
-
+Pr = struct( ...
+    "f",    1.54, ...        % Fan           outlet/inlet, P02/P015
+    "c_lp", 5,    ...        % Compressor    outlet/inlet, P03/P02
+    "c_hp", 13/5, ...        % Compressor    outlet/inlet, P03/P02
+    "b",    0.95  ...       % Burner        outlet/inlet, P04/P03
+    );
 
 % Efficiencies -> 1 = 100%
 eta = struct( ...
@@ -67,26 +78,26 @@ P015 = Pa*(1 + eta.d*(T015/Ta - 1))^(g.d/(g.d-1));
 %% Station 2: Fan Outlet/LP Compressor Inlet
 Cpf = (Ra*g.f)/(g.f-1);     % Specific heat of fan
 
-T02 = T015*(1 + 1/eta.f*(Prf^((g.f-1)/g.f)-1));
-P02 = P015*Prf;
+T02 = T015*(1 + 1/eta.f*(Pr.f^((g.f-1)/g.f)-1));
+P02 = P015*Pr.f;
 
 %% Station 2.5: LP Compressor Outlet/HP Compressor Inlet
 Cpc_LP = (Ra*g.c_lp)/(g.c_lp-1);     % Specific heat of compressor
 
-T025 = T02*(1 + 1/eta.c_lp*(Prc_lp^((g.c_lp-1)/g.c_lp)-1));
-P025 = P02*Prc_lp;
+T025 = T02*(1 + 1/eta.c_lp*(Pr.c_lp^((g.c_lp-1)/g.c_lp)-1));
+P025 = P02*Pr.c_lp;
 
 %% Station 3: HP Compressor Outlet/Burner Inlet
 Cpc_HP = (Ra*g.c_hp)/(g.c_hp-1);     % Specific heat of compressor
 
-T03 = T025*(1 + 1/eta.c_hp*(Prc_hp^((g.c_hp-1)/g.c_hp)-1));
-P03 = P025*Prc_hp;
+T03 = T025*(1 + 1/eta.c_hp*(Pr.c_hp^((g.c_hp-1)/g.c_hp)-1));
+P03 = P025*Pr.c_hp;
 
 %% Station 4: Burner Outlet/HP Turbine Inlet
 Cpb = (Rp*g.b)/(g.b-1);     % Specific heat of burner
 
 T04 = combustion_temp;
-P04 = P03*Prb;
+P04 = P03*Pr.b;
 
 f = (T04/T03 - 1)/((eta.b*QR)/(Cpb*T03)-T04/T03);   % Fuel-air ratio
 
@@ -131,8 +142,8 @@ fprintf("n0: %3f\n", eta_0)
 
 
 
-%% Create Turbofan Struct
-Turbofan = struct( ...
+%% Create Temperature and Pressure Struct
+T0P0 = struct( ...
     "Sa", struct( ...
         "T0", Ta, ...
         "P0", Pa), ...
@@ -165,6 +176,29 @@ Turbofan = struct( ...
         "P0", P07) ...
     );
 
+%% Create Cp Struct
+Cp = struct( ...
+    "f",    Cpf, ...
+    "c_LP", Cpc_LP, ...
+    "c_HP", Cpc_HP, ...
+    "b",    Cpb, ...
+    "t_HP", Cpt_HP, ...
+    "t_LP", Cpt_LP ...
+    );
+
+% clear Ta Pa T015 P015 T02 P02 T025 P025 T03 P03 T04 P04 T045 P045 T05 P05 T06 P06 T07 P07
+
+Turbofan = struct( ...
+    "Specs", struct( ...
+        "Info", Info, ...
+        "Efficiencies", eta, ...
+        "Gammas", g ...
+        ), ...
+    "Thermos", T0P0, ...
+    "Cp", Cp ...
+    );
+
+save("Turbofan.mat", "Turbofan")
 % Turbofan = struct( ...
 %     "Info", [],...
 %     "Compressor", struct( ...
