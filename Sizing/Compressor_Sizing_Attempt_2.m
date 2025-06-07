@@ -4,25 +4,25 @@ clear;clc;close all
 rpm = 40000;
 
 num_stages = 4;
-num_stations = num_stages * 2 + 1;
+num_stations = (num_stages+1) * 2;
 
 num_surfaces = 50;
 
 %% ======== Inputs from the sizing script ========
 load("Turbofan.mat")
-T0_in  = Turbofan.Thermos.S2.T0;
-T0_out  = Turbofan.Thermos.S25.T0;
-P0_in = Turbofan.Thermos.S2.P0;
-gamma  = Turbofan.Specs.Gammas.c_lp;
-R      = Turbofan.Specs.Info.Ra;
-cp     = Turbofan.Cp.c_LP;
+T01     = ones(1, num_surfaces) * Turbofan.Thermos.S2.T0;
+T0_out  = ones(1, num_surfaces) * Turbofan.Thermos.S25.T0;
+P01     = ones(1, num_surfaces) * Turbofan.Thermos.S2.P0;
+gamma   = Turbofan.Specs.Gammas.c_lp;
+R       = Turbofan.Specs.Info.Ra;
+cp      = Turbofan.Cp.c_LP;
+
 target_m_dot = Turbofan.Specs.Info.mass_flow_air;
 
 % ======== Dimensionless Performance Parameters, per stage ========
-phi_c_vec = [0.7, 0.6, 0.5, 0.4];        % Flow coefficient
-psi_c_vec = [0.3, 0.3, 0.3, 0.3];        % Work coefficient ----> to be determined from temperature rises later
-R_c_vec   = [0.5, 0.5, 0.5, 0.5];        % Degree of reaction
-
+phi_c_vec = [0.6, 0.6, 0.6, 0.6, 0.6];        % Flow coefficient
+psi_c_vec = [0.3, 0.3, 0.3, 0.3, 0.3];        % Work coefficient ----> to be determined from temperature rises later
+R_c_vec   = [0.5, 0.5, 0.5, 0.5, 0.5];        % Degree of reaction
 
 %% ======== Startup Fluff ========
 % Hub and Shroud Geometry Initialization
@@ -34,136 +34,136 @@ ang_vel = rpm * 2 * pi / 60;
 
 [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel);
 
-%% ======== Station 1 First Pass ========
-% ==== Wm_init Initialization ====
-Wm_init_1 = phi_c_vec(1) * U_r_mean_vec(1);
-% Wm_init_2 = phi_c_vec(2) * U_r_mean_vec(3);
-% Wm_init_3 = (Wm_init_1 + Wm_init_2) / 2;
+[station_results, station_feeder] = create_framework();
 
-C_theta_1 = eleven_four(R_c_vec(1), psi_c_vec(1), U_r_mean_vec(1), r_mean_vec(1), r_grid{1}, 1, 1);
-U_1 = ang_vel .* r_grid{1};
-W_theta_1 = C_theta_1 - U_1;
+station_feeder(1) = struct( ...
+    "stage_num",    1, ...      % Stage number
+    "stage_123",    1, ...      % Position within stage (local station number)
+    "phi_c_vec",    phi_c_vec, ...      % Phi's                                 | Vector per stage
+    "psi_c_vec",    psi_c_vec, ...      % Psi's                                 | Vector per stage
+    "R_c_vec",      R_c_vec, ...        % Mean radii degrees of reaction        | Vector per absolute station
+    "r_hub_vec",    r_hub_vec, ...      % Hub radii                             | Vector per absolute station
+    "r_shroud_vec", r_shroud_vec, ...   % Shroud radii                          | Vector per absolute station
+    "U_r_mean_vec", U_r_mean_vec, ...   % U at mean radius                      | Vector per absolute station
+    "r_mean_vec",   r_mean_vec, ...     % Mean radii                            | Vector per absolute station
+    "mean_index",   mean_index, ...     % Index of mean stream surface
+    "num_stations", num_stations, ...   % Number of absolute stations
+    "num_surfaces", num_surfaces, ...   % Number of stream surfaces
+    "ang_vel",      ang_vel, ...`       % Angular velocity
+    "T0",           T01, ...             % Total temperature                     | Spanwise vector
+    "P0",           P01, ...             % Total pressure                        | Spanwise vector
+    "cp",           cp, ...             % Cp
+    "gamma",        gamma, ...          % Gamma
+    "R",            R, ...              % Gas constant
+    "target_m_dot", target_m_dot ...    % Target mass flux
+);
 
-% ==== First-Pass LIST Initialization ====
-C_init = sqrt(Wm_init_1.^2 + C_theta_1.^2);
-h0 = cp*T0_in;                              % Total enthalpy        | Assumed constant spanwise
 
-L_init = ones(size(U_1)).*0.03;             % Entropy               | Spanwise distribution
-I_init = h0 - U_1.*C_theta_1;               % Rothalpy              | Spanwise distribution
-S_init = zeros(size(U_1));                  % Entropy               | Spanwise distribution
-T_init = T0_in - C_init.^2./(2*cp);         % Static temperature    | Spanwise distribution
-
-W_m_1 = seven_fifteen(y_grid{1}, I_init, S_init, r_grid{1}, T_init, C_theta_1, W_theta_1, Wm_init_1, mean_index);
-stat1_thermos = station_thermodynamics(W_m_1, C_theta_1, U_1, S_init, T0_in, P0_in, cp, gamma, L_init, R);
-[new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y_grid{1}, r_grid{1}, stat1_thermos.rho, W_m_1, target_m_dot);
-
-%% Station 1 Zoom Time
-while abs(current_m_dot - target_m_dot) > 0.001
-    r_hub_vec(1) = new_radius_ish;
-    [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel);
-
-    C_theta_1 = eleven_four(R_c_vec(1), psi_c_vec(1), U_r_mean_vec(1), r_mean_vec(1), r_grid{1}, 1, 1);
-    U_1 = ang_vel .* r_grid{1};
-    W_theta_1 = C_theta_1 - U_1;
-
-    W_m_1 = seven_fifteen(y_grid{1}, stat1_thermos.I, stat1_thermos.S, r_grid{1}, stat1_thermos.T, C_theta_1, W_theta_1, Wm_init_1, mean_index);
-    stat1_thermos = station_thermodynamics(W_m_1, C_theta_1, U_1, stat1_thermos.S, T0_in, P0_in, cp, gamma, L_init, R);
-    [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y_grid{1}, r_grid{1}, stat1_thermos.rho, W_m_1, target_m_dot);
-    fprintf("->")
+%% ======== Platform Nine and Seven Eighths ========
+for i = 1:length(station_results)
+    fprintf("Absolute station #: %i", i)
+    [station_results(i), r_grid, y_grid, station_feeder(i+1)] = stage(station_feeder(i), r_grid, y_grid);
 end
 
 
-function thermos = station_thermodynamics(W_m, C_theta, U, S, T0, P0, cp, gamma, loss, R)
-    C_m = W_m;
-    C = sqrt(C_m.^2 + C_theta.^2);
 
-    h0 = cp*T0;                             % Total enthalpy        | Assumed constant spanwise
-    T = T0 - C.^2./(2*cp);                  % Static temperature    | Spanwise distribution
-    P = P0 .* (T./T0).^(gamma/(gamma-1));   % Static pressure       | Spanwise distribution
-    rho = P./(R.*T);                        % Density               | Spanwise distribution
-    dS = loss.*0.5.*U.^2./T0;               % Entropy change        | Spanwise distribution
-    S = S + dS;                             % Entropy               | Spanwise distribution
-    I = h0 - U.*C_theta;                     % Rothalpy              | Spanwise distribution
-
-    % ==== Delicious Thermos Meal Recipie ====
-    thermos.h0 = h0;
-    thermos.T = T;
-    thermos.P = P;
-    thermos.rho = rho;
-    thermos.dS = dS;
-    thermos.S = S;
-    thermos.I = I;
+fprintf("\n")
+for i = 1:length(station_results)
+    fprintf("Total Temperature at Station %i: %f\n", i, station_results(i).thermo.T0_cur(station_results(i).mean_index))
+end
+fprintf("==================================\n")
+for i = 1:length(station_results)
+    fprintf("Total Pressure at Station %i: %f\n", i, station_results(i).thermo.P0_cur(station_results(i).mean_index))
+end
+    fprintf("\n==================================\n\n")
+for i = 1:length(station_results)
+    fprintf("Static Temperature at Station %i: %f\n", i, station_results(i).thermo.T_cur(station_results(i).mean_index))
+end
+    fprintf("==================================\n")
+for i = 1:length(station_results)
+    fprintf("Static Pressure at Station %i: %f\n", i, station_results(i).thermo.P_cur(station_results(i).mean_index))
 end
 
-function [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y, r, rho, W_m, target_m_dot)
-    current_m_dot = 0;
-    % ==== Assumptions ====
-    Kw = 1;                 % Ignoring curvature for now
-    ep = zeros(size(y));    % Vertical quasi-normals
 
-    for i = 1:length(y)-1
-        dA = 2*pi*r(i)*Kw*cosd(ep(i))*(y(i+1)-y(i));
-        current_m_dot = current_m_dot + rho(i) * W_m(i) * dA;
+
+
+
+
+% plot_vel_triangle([300,600], triangle1_mean, 1, '-k', '-b', '-r')
+% plot_vel_triangle([300,600], triangle2_mean, 1, '-k', '-b', '-r')
+% plot_vel_triangle([300,600], triangle3_mean, 1, '-k', '-b', '-r')
+% plot_vel_triangle([300,600], triangle4_mean, 1, '-k', '-b', '-r')
+
+figure(Name="Streamlines")
+hold on
+for i = 1:num_surfaces
+    streamline = ones(1,num_stations);
+    for j = 1: num_stations
+        streamline(j) = r_grid{j}(i);
     end
+    plot(streamline, 'k--')
+end
+plot([station_results(end).r_shroud_vec', station_results(end).r_hub_vec', station_results(end).r_mean_vec'], '.-')
+height = max(station_results(end).r_shroud_vec)-min(station_results(end).r_hub_vec);
+ylim([min(station_results(end).r_hub_vec)-height/10, max(station_results(end).r_shroud_vec)+height/10])
+xlim([0, num_stations+1])
 
-    r_s = r(end);
-    r_h = r(1);
-    annulus_current = pi * (r_s^2 - r_h^2);
-    annulus_new = annulus_current * target_m_dot / current_m_dot;
+% plot_halftree(000, station1.W_m, 12, -100, 1, '-b')
+% plot_halftree(300, station2.W_m, 12, -100, 1, '-b')
+% plot_halftree(600, station3.W_m, 12, -100, 1, '-b')
+% 
+% plot_halftree(000, station1.C_theta, 12, -96, 1, '-r')
+% plot_halftree(300, station2.C_theta, 12, -96, 1, '-r')
+% plot_halftree(600, station3.C_theta, 12, -96, 1, '-r')
 
-    new_radius = sqrt(r_s^2 - annulus_new/pi);
-    new_radius_ish = r_h + (3/4) * (new_radius - r_h);
+
+
+
+%% Functions
+function [T02, P02, T2, P2, T1, P1] = thermobridge(C_theta_1, W_m_1, U1, C_theta_2, W_m_2, U2, T01, P01, cp, rho, loss)
+
+    % ======== C and W Determination ========
+    % U1 = U2 = 0 if stator
+    C_m_1 = W_m_1;
+    C1 = sqrt(C_m_1.^2 + C_theta_1.^2);
+    W_theta_1 = C_theta_1 - U1;
+    W1 = sqrt(W_m_1.^2 + W_theta_1.^2);
+
+    C_m_2 = W_m_2;
+    C2 = sqrt(C_m_2.^2 + C_theta_2.^2);
+    W_theta_2 = C_theta_2 - U2;
+    W2 = sqrt(W_m_2.^2 + W_theta_2.^2);
+
+    % ======== Station 1 ========
+    T1 = T01 - C1.^2./(2.*cp);
+    P1 = P01 - rho .* C1.^2 ./ 2;
+
+    T1R = T1;
+    P1R = P1;
+
+    T01R = T1R + W1.^2./(2.*cp);
+    P01R = P1R + rho.*W1.^2./2;
+
+    % ======== Station 2 ========
+    T02Ri = T01R;                       % Assume adiabatic
+    P02Ri = P01R;                       % Assume isentropic
+
+    T02R = T02Ri;                       % Assumption becomes reality (O_o)
+    P02R = P02Ri - loss.*(P01R - P1R);  % Factor in loss
+
+    T2R = T02R - W2.^2./(2.*cp);
+    P2R = P02R - rho .* W2.^2 ./ 2;
+
+    T2 = T2R;
+    P2 = P2R;
+
+    T02 = T2 + C2.^2./(2.*cp);
+    P02 = P2 + rho.*C2.^2./2;
+
 end
 
-function C_theta_1 = eleven_four(Rc_c1, psi_c1, U_c1, r_c1, r_1, n, m)
-    C_theta_1 = U_c1.*((1-Rc_c1).*(r_c1./r_1).^n - psi_c1./2.*(r_c1./r_1).^m);
-end
 
-function W_m = seven_fifteen(y, I, s, r, T, C_theta, W_theta, Wm_init, mean_index)
-    % ==== Input Variables ====
-    %       y | spanwise coordinate (vector)
-    %       I | rothalpy distribution (vector)
-    %       s | entropy distribution (vector)
-    %       r | radii (vector)
-    %       T | total temperature (scalar)
-    % C_theta | absolute tangential velocity (vector)
-    % W_theta | relative tangential velocity (vector)
-    % Wm_init | known boundary value of Wm at starting y (hub)
 
-    % ==== Assumptions ====
-    Km = 0;                     % No streamline curvature
-    dWm_dm = zeros(size(y));    % No streamline variation
-    ep = zeros(size(y));        % Vertical quasi-normals
-
-    % ==== Gradients ====
-    dI_dy = gradient(I, y);
-    ds_dy = gradient(s, y);
-    drC_dy = gradient(r.*C_theta, y);
-
-    % ==== Used later when we want to consider streamline variation ====
-    % dphi_dy = gradient(phi, y);
-    % dWm_dm = Wm./(1-Mm.^2) .* (-(1+M_theta.^2) .* sind(phi)./r - 1/cosd(ep).*dphi_dy - Km.*tand(ep));
-
-    % ==== Initialization ====
-    W_m = ones(size(y))*Wm_init;
-
-    % ==== Le f's ====
-    f1 = -Km.*cosd(ep) + sind(ep)./W_m .* dWm_dm;   % zero for initial sizing
-    f3 = dI_dy - T.*ds_dy - (W_theta./r).*drC_dy;
-
-    % ==== Ong it's marching time
-    for i = mean_index:length(y)-1
-        dy = y(i+1)-y(i);
-        dWm_dy = f1(i)*W_m(i) + f3(i)/W_m(i);
-        W_m(i+1) = W_m(i) + dy * dWm_dy;
-    end
-
-    for i = mean_index:-1:2
-        dy = y(i)-y(i-1);
-        dWm_dy = f1(i)*W_m(i) + f3(i)/W_m(i);
-        W_m(i-1) = W_m(i) - dy * dWm_dy;
-    end
-end
 
 function [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel)
     % ==== Mean Radius Initialization ====
@@ -195,4 +195,57 @@ function [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shr
 
     % Find meanline U velocities (returns mean radius values of U axially)
     U_r_mean_vec = ang_vel.*r_mean_vec;
+end
+
+function [station_results, station_feeder] = create_framework()
+
+    results_template = struct( ...
+        "r_hub_vec",    [], ...
+        "r_shroud_vec", [], ...
+        "r_mean_vec",   [], ...
+        "U_r_mean_vec", [], ...
+        "mean_index",   [], ...
+        "W_m",          [], ...
+        "C_theta",      [], ...
+        "W_theta",      [], ...
+        "U",            [], ...
+        "Loss",         [], ...
+        "rho",          [], ...
+        "thermo", struct( ...
+            "T0_next",  [], ...
+            "P0_next",  [], ...
+            "T0_cur",   [], ...
+            "P0_cur",   [], ...
+            "T_next",   [], ...
+            "P_next",   [], ...
+            "T_cur",    [], ...
+            "P_cur",    [] ...
+        ) ...
+    );
+
+    station_results = repmat(results_template, 9, 1);
+
+    feeder_template = struct( ...
+        "stage_num",    [], ... % Stage number
+        "stage_123",    [], ... % Position within stage (local station number)
+        "phi_c_vec",    [], ... % Phi's                                 | Vector per stage
+        "psi_c_vec",    [], ... % Psi's                                 | Vector per stage
+        "R_c_vec",      [], ... % Mean radii degrees of reaction        | Vector per absolute station
+        "r_hub_vec",    [], ... % Hub radii                             | Vector per absolute station
+        "r_shroud_vec", [], ... % Shroud radii                          | Vector per absolute station
+        "U_r_mean_vec", [], ... % U at mean radius                      | Vector per absolute station
+        "r_mean_vec",   [], ... % Mean radii                            | Vector per absolute station
+        "mean_index",   [], ... % Index of mean stream surface
+        "num_stations", [], ... % Number of absolute stations
+        "num_surfaces", [], ... % Number of stream surfaces
+        "ang_vel",      [], ...`% Angular velocity
+        "T0",           [], ... % Total temperature                     | Spanwise vector
+        "P0",           [], ... % Total pressure                        | Spanwise vector
+        "cp",           [], ... % Cp
+        "gamma",        [], ... % Gamma
+        "R",            [], ... % Gas constant
+        "target_m_dot", [] ...  % Target mass flux
+    );
+
+    station_feeder = repmat(feeder_template, 10, 1);
 end

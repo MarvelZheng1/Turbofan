@@ -1,13 +1,13 @@
 clear;clc;clf
 
 M_f = 0.85;                     % Flight mach number 
-g_cold = 1.401;                 % Pre-combustion specific heat ratio (assumed constant)
-g_hot = 1.33;                   % Post-combustion specific heat ratio (assumed constant) 
+% g_cold = 1.401;                 % Pre-combustion specific heat ratio (assumed constant)
+% g_hot = 1.33;                   % Post-combustion specific heat ratio (assumed constant) 
 % specHeat_cold = 1004;         % specific heat for cold components [J/kgK]
 % specHeat_hot = 1156;          % specific heat for hot components [J/kgK]
 QR = 45000000;                  % heat of reaction of jetA [J/kg]
 
-target_thrust = 200 * 4.448;     % lbf, converted to newtons
+target_thrust = 250 * 4.448;     % lbf, converted to newtons
 
 combustion_temp = 1750;         % Temperature of combustion (burner outlet temperature, T04)
 Rp = 287;                       % Gas constants of products
@@ -21,8 +21,6 @@ num_LP_turbines    = 1;
 
 Info = struct( ...
     "M_f",              M_f, ...
-    "g_cold",           g_cold, ...
-    "g_hot",            g_hot, ...
     "Rp",               Rp, ...
     "Ra",               Ra, ...
     "combustion_temp",  combustion_temp, ...
