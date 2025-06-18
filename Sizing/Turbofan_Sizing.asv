@@ -7,13 +7,13 @@ M_f = 0.85;                     % Flight mach number
 % specHeat_hot = 1156;          % specific heat for hot components [J/kgK]
 QR = 45000000;                  % heat of reaction of jetA [J/kg]
 
-target_thrust = 250 * 4.44822;   % Newtons (converted from lbf by *4.44822)
+target_thrust = 150 * 4.44822;   % Newtons (converted from lbf by *4.44822)
 
-combustion_temp = 1750;         % Temperature of combustion (burner outlet temperature, T04)    | Kelvin
+combustion_temp = 1233.15;         % Temperature of combustion (burner outlet temperature, T04)    | Kelvin
 Rp = 287;                       % Gas constants of products
 Ra = 287;                       % Gas constants of air
 
-bypass = 3;                     % Bypass ratio!! (fan diameter = 2*(core diameter)
+bypass = 3.3;                     % Bypass ratio!! (fan diameter = 2*(core diameter)
 
 Info = struct( ...
     "M_f",              M_f, ...
@@ -27,9 +27,9 @@ Info = struct( ...
 
 % Design Pressure Ratios
 Pr = struct( ...
-    "f",    1.2, ...        % Fan           outlet/inlet, P02/P015
-    "c_lp", sqrt(4), ...        % Compressor    outlet/inlet, P03/P02
-    "c_hp", sqrt(4), ...        % Compressor    outlet/inlet, P03/P02
+    "f",    1.5, ...        % Fan           outlet/inlet, P02/P015
+    "c_lp", sqrt(10), ...        % Compressor    outlet/inlet, P03/P02
+    "c_hp", sqrt(10), ...        % Compressor    outlet/inlet, P03/P02
     "b",    1  ...       % Burner         outlet/inlet, P04/P03
     );
 
@@ -142,9 +142,6 @@ Info.mass_flow = double(vpa(solve(target_thrust == ST * m_dot, m_dot)));
 Info.mass_flow_air = Info.mass_flow / (1 + fr);
 Info.mass_flow_fuel = Info.mass_flow - Info.mass_flow_air;
 Info.core_mass_flow_air = Info.mass_flow_air/bypass;
-
-Info.u_ec = u_ec;
-Info.u_ef = u_ef;
 
 fprintf("ST: %3f\n", ST)
 fprintf("TSFC: %3f\n", TSFC)

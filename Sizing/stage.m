@@ -59,7 +59,7 @@ function [station_res, r_grid, y_grid, next_stop] = stage(station_info, r_grid, 
         C_theta_next = txtbk.eleven_six(station_info.R_c_vec(stage_num_next), station_info.psi_c_vec(stage_num_next), station_res.U_r_mean_vec(abs_station_next), station_res.r_mean_vec(abs_station_next), r_grid{abs_station_next}, 1, 1);
     end
     
-    [T0_next, P0_next, T_next, P_next, T_cur, P_cur] = thermobridge(station_res.C_theta, station_res.W_m, U_curr, C_theta_next, station_res.W_m, U_next, station_info.T0, station_info.P0, station_info.cp, station_res.rho, station_res.Loss);
+    [T0_next, P0_next, T_next, P_next, T_cur, P_cur] = thermobridge(station_res.C_theta, station_res.W_m, U_curr, C_theta_next, station_res.W_m, U_next, station_info.T0, station_info.P0, station_info.cp, station_info.gamma, station_res.Loss);
     
     fprintf("\n")
 
@@ -88,7 +88,7 @@ function [station_res, r_grid, y_grid, next_stop] = stage(station_info, r_grid, 
 end
 
 %% ======== Helper Functions ========
-function [T02, P02, T2, P2, T1, P1] = thermobridge(C_theta_1, W_m_1, U1, C_theta_2, W_m_2, U2, T01, P01, cp, rho, loss)
+function [T02, P02, T2, P2, T1, P1] = thermobridge(C_theta_1, W_m_1, U1, C_theta_2, W_m_2, U2, T01, P01, cp, gamma, loss)
 
     % ======== C and W Determination ========
     % U1 = U2 = 0 if stator
@@ -104,13 +104,15 @@ function [T02, P02, T2, P2, T1, P1] = thermobridge(C_theta_1, W_m_1, U1, C_theta
 
     % ======== Station 1 ========
     T1 = T01 - C1.^2./(2.*cp);
-    P1 = P01 - rho .* C1.^2 ./ 2;
+    % P1 = P01 - (rho .* (C1.^2)) ./ 2;
+    P1 = P01 .* (T1./T01).^(gamma/(gamma-1));
 
     T1R = T1;
     P1R = P1;
 
     T01R = T1R + W1.^2./(2.*cp);
-    P01R = P1R + rho.*W1.^2./2;
+    % P01R = P1R + rho.*W1.^2./2;
+    P01R = P1R .* (T1R./T01R).^(-gamma/(gamma-1)); 
 
     % ======== Station 2 ========
     T02Ri = T01R;                       % Assume adiabatic
@@ -120,13 +122,15 @@ function [T02, P02, T2, P2, T1, P1] = thermobridge(C_theta_1, W_m_1, U1, C_theta
     P02R = P02Ri - loss.*(P01R - P1R);  % Factor in loss
 
     T2R = T02R - W2.^2./(2.*cp);
-    P2R = P02R - rho .* W2.^2 ./ 2;
+    % P2R = P02R - rho .* W2.^2 ./ 2;
+    P2R = P02R .* (T2R./T02R).^(gamma/(gamma-1));
 
     T2 = T2R;
     P2 = P2R;
 
     T02 = T2 + C2.^2./(2.*cp);
-    P02 = P2 + rho.*C2.^2./2;
+    % P02 = P2 + rho.*C2.^2./2;
+    P02 = P2 .* (T2./T02).^(-gamma/(gamma-1));
 
 end
 

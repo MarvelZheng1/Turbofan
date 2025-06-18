@@ -3,9 +3,7 @@ clear;clc;clf
 
 
 
-asdf = linspace(1, 50, 6)
-
-qwer = 2*asdf
+lo
 
 
 

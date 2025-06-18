@@ -1,10 +1,13 @@
 clear;clc;close all
 %% ======== User-Defined Design Variables ========
 
-rpm = 40000;
+rpm = 40000; %9000
 
-num_stages = 4;
+num_stages = 6; %12
+%% 
 num_stations = (num_stages+1) * 2;
+
+axial_gap = 0.001 * 12;
 
 num_surfaces = 50;
 
@@ -17,55 +20,55 @@ gamma   = Turbofan.Specs.Gammas.c_lp;
 R       = Turbofan.Specs.Info.Ra;
 cp      = Turbofan.Cp.c_LP;
 
-target_m_dot = Turbofan.Specs.Info.mass_flow_air;
+target_m_dot = 2;Turbofan.Specs.Info.core_mass_flow_air;       % kg/s 1100
 
 % ======== Dimensionless Performance Parameters, per stage ========
-phi_c_vec = [0.6, 0.6, 0.6, 0.6, 0.6];        % Flow coefficient
-psi_c_vec = [0.3, 0.3, 0.3, 0.3, 0.3];        % Work coefficient ----> to be determined from temperature rises later
-R_c_vec   = [0.5, 0.5, 0.5, 0.5, 0.5];        % Degree of reaction
+phi_c_vec = ones(1,num_stages+1)*0.6;        % Flow coefficient
+psi_c_vec = ones(1,num_stages+1)*0.5;        % Work coefficient ----> to be determined from temperature rises later
+R_c_vec   = ones(1,num_stages+1)*0.5;        % Degree of reaction
 
 %% ======== Startup Fluff ========
 % Hub and Shroud Geometry Initialization
 % Vector along axis
-r_shroud_vec = ones(1, num_stations)*0.001* 110;
-r_hub_vec    = ones(1, num_stations)*0.001* 75;
+r_shroud_vec = ones(1, num_stations)*0.001* 70;    % In meters, because there is a *0.001
+r_hub_vec    = ones(1, num_stations)*0.001* 5;     % In meters, because there is a *0.001
 % Misc
-ang_vel = rpm * 2 * pi / 60;
+ang_vel = rpm * 2 * pi / 60;                        % Radians/sec
 
+% r_grid and y_grid in meters
 [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shroud_vec, r_hub_vec, num_stations, num_surfaces, ang_vel);
 
-[station_results, station_feeder] = create_framework();
+[station_results, station_feeder] = create_framework(num_stations);
 
 station_feeder(1) = struct( ...
-    "stage_num",    1, ...      % Stage number
-    "stage_123",    1, ...      % Position within stage (local station number)
-    "phi_c_vec",    phi_c_vec, ...      % Phi's                                 | Vector per stage
-    "psi_c_vec",    psi_c_vec, ...      % Psi's                                 | Vector per stage
-    "R_c_vec",      R_c_vec, ...        % Mean radii degrees of reaction        | Vector per absolute station
-    "r_hub_vec",    r_hub_vec, ...      % Hub radii                             | Vector per absolute station
-    "r_shroud_vec", r_shroud_vec, ...   % Shroud radii                          | Vector per absolute station
-    "U_r_mean_vec", U_r_mean_vec, ...   % U at mean radius                      | Vector per absolute station
-    "r_mean_vec",   r_mean_vec, ...     % Mean radii                            | Vector per absolute station
+    "stage_num",    1, ...              % Stage number
+    "stage_123",    1, ...              % Position within stage (local station number)
+    "phi_c_vec",    phi_c_vec, ...      % Phi's                                 | Vector per stage              | Dimensionless
+    "psi_c_vec",    psi_c_vec, ...      % Psi's                                 | Vector per stage              | Dimensionless
+    "R_c_vec",      R_c_vec, ...        % Mean radii degrees of reaction        | Vector per absolute station   | Dimensionless
+    "r_hub_vec",    r_hub_vec, ...      % Hub radii                             | Vector per absolute station   | Meters
+    "r_shroud_vec", r_shroud_vec, ...   % Shroud radii                          | Vector per absolute station   | Meters
+    "U_r_mean_vec", U_r_mean_vec, ...   % U at mean radius                      | Vector per absolute station   | Meters/Second
+    "r_mean_vec",   r_mean_vec, ...     % Mean radii                            | Vector per absolute station   | Meters
     "mean_index",   mean_index, ...     % Index of mean stream surface
     "num_stations", num_stations, ...   % Number of absolute stations
     "num_surfaces", num_surfaces, ...   % Number of stream surfaces
-    "ang_vel",      ang_vel, ...`       % Angular velocity
-    "T0",           T01, ...             % Total temperature                     | Spanwise vector
-    "P0",           P01, ...             % Total pressure                        | Spanwise vector
+    "ang_vel",      ang_vel, ...`       % Angular velocity                                                      | Radians/Second
+    "T0",           T01, ...            % Total temperature                     | Spanwise vector              | Kelvin
+    "P0",           P01, ...            % Total pressure                        | Spanwise vector              | Pascals
     "cp",           cp, ...             % Cp
     "gamma",        gamma, ...          % Gamma
     "R",            R, ...              % Gas constant
     "target_m_dot", target_m_dot ...    % Target mass flux
 );
 
-
 %% ======== Platform Nine and Seven Eighths ========
 for i = 1:length(station_results)
-    fprintf("Absolute station #: %i", i)
+    fprintf("Absolute station #: %i\n", i)
     [station_results(i), r_grid, y_grid, station_feeder(i+1)] = stage(station_feeder(i), r_grid, y_grid);
 end
 
-
+total_pressure_ratio = station_results(end).thermo.P0_cur(station_results(i).mean_index) / station_results(1).thermo.P0_cur(station_results(i).mean_index);
 
 fprintf("\n")
 for i = 1:length(station_results)
@@ -83,9 +86,11 @@ end
 for i = 1:length(station_results)
     fprintf("Static Pressure at Station %i: %f\n", i, station_results(i).thermo.P_cur(station_results(i).mean_index))
 end
-
-
-
+fprintf("==================================\n")
+for i = 1:length(station_results)
+    fprintf("Density at Station %i: %f\n", i, station_results(i).rho(station_results(i).mean_index))
+end
+fprintf("\nTotal Pressure Ratio: %3f\n", total_pressure_ratio)
 
 
 
@@ -96,17 +101,22 @@ end
 
 figure(Name="Streamlines")
 hold on
+axis equal
+x = (1:1:num_stations)*axial_gap;
 for i = 1:num_surfaces
     streamline = ones(1,num_stations);
     for j = 1: num_stations
         streamline(j) = r_grid{j}(i);
     end
-    plot(streamline, 'k--')
+    plot(x,streamline, 'k--')
+    plot(x,-streamline, 'k--') % Mirroring
 end
-plot([station_results(end).r_shroud_vec', station_results(end).r_hub_vec', station_results(end).r_mean_vec'], '.-')
+plot(x,[station_results(end).r_shroud_vec', station_results(end).r_hub_vec', station_results(end).r_mean_vec'], '.-')
+plot(x,[-station_results(end).r_shroud_vec', -station_results(end).r_hub_vec', -station_results(end).r_mean_vec'], '.-') % Mirroring
 height = max(station_results(end).r_shroud_vec)-min(station_results(end).r_hub_vec);
-ylim([min(station_results(end).r_hub_vec)-height/10, max(station_results(end).r_shroud_vec)+height/10])
-xlim([0, num_stations+1])
+% ylim([min(station_results(end).r_hub_vec)-height/10, max(station_results(end).r_shroud_vec)+height/10])
+ylim([-max(station_results(end).r_shroud_vec)-height/10, max(station_results(end).r_shroud_vec)+height/10])
+xlim([0, (num_stations+1)*axial_gap])
 
 % plot_halftree(000, station1.W_m, 12, -100, 1, '-b')
 % plot_halftree(300, station2.W_m, 12, -100, 1, '-b')
@@ -197,7 +207,7 @@ function [r_grid, y_grid, r_mean_vec, U_r_mean_vec, mean_index] = set_grid(r_shr
     U_r_mean_vec = ang_vel.*r_mean_vec;
 end
 
-function [station_results, station_feeder] = create_framework()
+function [station_results, station_feeder] = create_framework(num_stations)
 
     results_template = struct( ...
         "r_hub_vec",    [], ...
@@ -211,6 +221,9 @@ function [station_results, station_feeder] = create_framework()
         "U",            [], ...
         "Loss",         [], ...
         "rho",          [], ...
+        "rho_T",          [], ...
+        "rho_P",          [], ...
+        "m_dot_cur",    [], ...
         "thermo", struct( ...
             "T0_next",  [], ...
             "P0_next",  [], ...
@@ -223,7 +236,7 @@ function [station_results, station_feeder] = create_framework()
         ) ...
     );
 
-    station_results = repmat(results_template, 9, 1);
+    station_results = repmat(results_template, num_stations-1, 1);
 
     feeder_template = struct( ...
         "stage_num",    [], ... % Stage number
@@ -247,5 +260,5 @@ function [station_results, station_feeder] = create_framework()
         "target_m_dot", [] ...  % Target mass flux
     );
 
-    station_feeder = repmat(feeder_template, 10, 1);
+    station_feeder = repmat(feeder_template, num_stations, 1);
 end

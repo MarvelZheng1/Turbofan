@@ -56,15 +56,17 @@ function [res, r_grid, y_grid] = quasinormal_analysis( ...
         C = sqrt(Wm_init.^2 + C_theta.^2);
         H0 = cp*T0;                              % Total enthalpy        | Assumed constant spanwise
     
-        L = ones(size(U)).*0.03;             % Entropy               | Spanwise distribution        | Constant every rotation (for now)
-        I = H0 - U.*C_theta;               % Rothalpy              | Spanwise distribution        | Changes every rotation  (dependent on C_theta_1
-        S = zeros(size(U));                  % Entropy               | Spanwise distribution        | Constant every rotation (for now, depends on L_1??)
+        L = ones(size(U)).*0.03;            % Entropy               | Spanwise distribution        | Constant every rotation (for now)
+        I = H0 - U.*C_theta;                % Rothalpy              | Spanwise distribution        | Changes every rotation  (dependent on C_theta_1
+        S = zeros(size(U));                 % Entropy               | Spanwise distribution        | Constant every rotation (for now, depends on L_1??)
         T = T0 - C.^2./(2*cp);              % Static temperature    | Spanwise distribution        | Changes evert rotation  (dependent on C_!
     
         W_m = seven_fifteen(y_grid{abs_station}, r_grid{abs_station}, C_theta, W_theta, I, S, T, Wm_init, mean_index);
-        [rho, ~, ~] = thermos(W_m, C_theta, T0, P0, cp, gamma, R);
+        [rho, rho_T, rho_P] = thermos(W_m, C_theta, T0, P0, cp, gamma, R);
         [~, new_radius_ish, current_m_dot] = annulus_adjust(y_grid{abs_station}, r_grid{abs_station}, rho, W_m, target_m_dot);
-        fprintf("->")
+        diff = current_m_dot-target_m_dot;
+        asdf = abs(diff);
+        fprintf("%3f\n", asdf)
         
     end
 
@@ -80,7 +82,10 @@ function [res, r_grid, y_grid] = quasinormal_analysis( ...
             "W_theta", W_theta, ...
             "U", U, ...
             "Loss", L, ...
-            "rho", rho ...
+            "rho", rho, ...
+            "rho_T", rho_T, ...
+            "rho_P", rho_P, ...
+            "m_dot_cur", current_m_dot ...
         );
 end
 
@@ -90,12 +95,19 @@ function [rho, T, P] = thermos(W_m, C_theta, T0, P0, cp, gamma, R)
     C_m = W_m;
     C = sqrt(C_m.^2 + C_theta.^2);
 
-    T = T0 - C.^2./(2*cp);                  % Static temperature    | Spanwise distribution
-    P = P0 .* (T./T0).^(gamma/(gamma-1));   % Static pressure       | Spanwise distribution
-    rho = P./(R.*T);                        % Density               | Spanwise distribution
+    T = T0 - C.^2./(2*cp);                  % Static temperature    | Spanwise distribution     | Kelvin
+    T_pos_test = T < 0;
+    allPos = sum(T_pos_test) == 0; % If allPos is true, all of T is positive
+    T_real_test = ~isreal(T); % if T_real_test has ones, then there are complex
+    allReal = sum(T_real_test) == 0; % If allReal is true, then all of T are real
+    if ~allPos || ~allReal
+        fprintf("U too big -> ")
+    end
+    P = P0 .* (T./T0).^(gamma/(gamma-1));   % Static pressure       | Spanwise distribution     | Pascals
+    rho = P./(R.*T);                        % Density               | Spanwise distribution     
 end
 
-function [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y, r, rho, W_m, target_m_dot)
+function [r_new, new_radius_ish, current_m_dot] = annulus_adjust(y, r, rho, W_m, target_m_dot)
     current_m_dot = 0;
     % ==== Assumptions ====
     Kw = 1;                 % Ignoring curvature for now
@@ -111,8 +123,19 @@ function [new_radius, new_radius_ish, current_m_dot] = annulus_adjust(y, r, rho,
     annulus_current = pi * (r_s^2 - r_h^2);
     annulus_new = annulus_current * target_m_dot / current_m_dot;
 
-    new_radius = sqrt(r_s^2 - annulus_new/pi);
-    new_radius_ish = r_h + (3/4) * (new_radius - r_h);
+    syms r_new
+
+    r_new_sol = solve(pi*r_s^2-pi*r_new^2 == annulus_new, r_new);
+    r_new = double(r_new_sol(2));
+    if isreal(r_new) == false
+        if annulus_new > (pi*r_s^2)
+            fprintf("shroud radius too smol -> ")
+        end
+        fprintf("complex radii -> ")
+    end
+
+    % new_radius = sqrt(r_s^2 - annulus_new/pi);
+    new_radius_ish = r_h + (3/4) * (r_new - r_h);
 end
 
 function W_m = seven_fifteen(y, r, C_theta, W_theta, I, s, T, Wm_init, mean_index)
