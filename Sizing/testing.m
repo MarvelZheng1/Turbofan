@@ -3,9 +3,8 @@ clear;clc;clf
 
 
 
-asdf = linspace(1, 50, 6)
-
-qwer = 2*asdf
+asdf = {[1 2 3 4], [2 3 4 5]}
+max(asdf{1})
 
 
 

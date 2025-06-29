@@ -4,28 +4,27 @@ load("Turbofan.mat")
 
 %% Design Variables
 % Constants
-gamma = 1.4;    % Specific heat ratio           |
-cp = 1004;      % Specific heat                 | J/(kg*K)
+gamma = Turbofan.Specs.Gammas.c_lp;     %1.4;    % Specific heat ratio           |
+cp = Turbofan.Cp.c_LP;              %1004;      % Specific heat                 | J/(kg*K)
 
 
 % Inlet Conditions
-T0_1 = 298;%Turbofan.Thermos.S2.T0; %298;      % Ambient total temperature     | Kelvin        (absolute) spanwise constant
-P0_1 = 101000;%Turbofan.Thermos.S2.P0; %101000;   % Ambient total pressure        | Pascals       (absolute) spanwise constant
-
+T0_1 = Turbofan.Thermos.S2.T0; %298;      % Ambient total temperature     | Kelvin        (absolute) spanwise constant
+P0_1 = Turbofan.Thermos.S2.P0; %101000;   % Ambient total pressure        | Pascals       (absolute) spanwise constant
 
 
 % Design choices
-Pr_total = 20;  % Overall pressure ratio        |
+Pr_total = 3;%Turbofan.Specs.desPR.c_lp; %20;  % Overall pressure ratio        |
 e_c = 0.9;      % Polytropic efficiency         |
-m_dot = 100;%Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
-htt_rr = 0.5;   % Hub to tip radius ratio       |
+m_dot = 0.485;%Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
+htt_rr = 0.55;   % Hub to tip radius ratio       |
 deHaller = 0.72;            % typical value
 min_reynolds = 300000;
-kin_visc = 8.54e-5;                           % | From chart
+kin_visc = 1.46e-5;                           % | From chart, 0km
 
-alpha_1m = 20;                                 % | Inlet Swirl
-Mz_1m = 0.5;                                  % | Initial axial mach number
-U_tip_1 = 450;
+alpha_1m = 30;                                 % | Inlet Swirl
+Mz_1m = 0.45;                                  % | Initial axial mach number
+U_tip_1 = 350;
 
 %% Compressor inlet conditions
 % Design assumptions
@@ -305,44 +304,48 @@ plot(x_axis_long, [-FF.r_hub_vec_full', -FF.r_tip_vec_full'], '.-k')
 % ylim([0,max(r_tip_vec)*1.2])
 ylim([-max(r_tip_vec)*1.2,max(r_tip_vec)*1.2])
 xlim([x_axis(1), x_axis(end)])
-pbaspect([range(x_axis),max(r_tip_vec)*1.2,1])
+pbaspect([range(x_axis),2*max(r_tip_vec)*1.2,1])
 grid minor
 xlabel("z (m)")
 ylabel("r (m)")
 
-% %% Info dump
-% fprintf("======== Compressor Information ========\n")
-% fprintf("Ratios:\n")
-% fprintf("    Total Pressure Ratio (design):    %12.3f\n",       Pr_total)
-% fprintf("    Total Pressure Ratio (actual):    %12.3f\n",       Pr_total_actual)
-% fprintf("    Total Temperature Ratio (design): %12.3f\n",       Tr_total)
-% fprintf("    Total Temperature Ratio (actual): %12.3f\n",       Tr_total_actual)
-% fprintf("Values:\n")
-% fprintf("    Temperature Rise (total):         %12.3f K\n",     temp_rise_total)
-% fprintf("    Temperature Rise (per stage):     %12.3f K\n",     temp_rise_per_stage)
-% fprintf("    Pressure Rise (total):            %12.3f Pa\n",    P0_rise_total)
-% fprintf("    Inlet Total Temperature (total):  %12.3f K\n",     T0_stages(1))
-% fprintf("    Inlet Total Pressure (total):     %12.3f Pa\n",    P0_stages(1))
-% fprintf("    Exit Total Temperature (total):   %12.3f K\n",     T0_stages(end))
-% fprintf("    Exit Total Pressure (total):      %12.3f Pa\n",    P0_stages(end))
-% fprintf("Aerodynamics:\n")
-% fprintf("    Rotor Diffusion Factor:           %12.3f\n",       rps.D_mr)
-% fprintf("    Stator Diffusion Factor:          %12.3f\n",       rps.D_ms)
-% fprintf("    Stage Degree of Reaction:         %12.3f\n",       rps.degR_m)
-% fprintf("    De Haller Ratio Used:             %12.3f\n",       deHaller)
-% fprintf("    Rotor Inlet Mach Number:          %12.3f\n",       Mw_1m)
-% fprintf("    Stator Inlet Mach Number:         %12.3f\n",       Mc_2m)
-% fprintf("    Compressor Inlet Mach Number:     %12.3f\n",       Mc_1m)
-% fprintf("    Compressor Outlet Mach Number:    %12.3f\n",       Mc_exit)
-% fprintf("Triangles:\n")
-% fprintf("    Rotor Turning:                    %12.3f deg\n",   abs(beta_2m - beta_1m))
-% fprintf("    Stator Turning:                   %12.3f deg\n",   abs(alpha_1m - alpha_2m))
-% fprintf("Misc:\n")
-% fprintf("    Number of Stages (calculated):    %12.3f\n",       num_stages_actual)
-% fprintf("    Number of Stages (rounded up):    %12.3f\n",       num_stages)
-% fprintf("    Blade Chord Length:               %12.3f\n",       chord_m)
-% fprintf("    RPM:                              %12.3f\n",       rpm)
-% fprintf("\n======== Warnings ========\n")
+plot_spanwise_distributions(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF)
+
+%% Info dump
+fprintf("======== Compressor Information ========\n")
+fprintf("Ratios:\n")
+fprintf("    Total Pressure Ratio (design):    %12.3f\n",       Pr_total)
+fprintf("    Total Pressure Ratio (actual):    %12.3f\n",       Pr_total_actual)
+fprintf("    Total Temperature Ratio (design): %12.3f\n",       Tr_total)
+fprintf("    Total Temperature Ratio (actual): %12.3f\n",       Tr_total_actual)
+fprintf("Values:\n")
+fprintf("    Temperature Rise (total):         %12.3f K\n",     temp_rise_total)
+fprintf("    Temperature Rise (per stage):     %12.3f K\n",     temp_rise_per_stage)
+fprintf("    Pressure Rise (total):            %12.3f Pa\n",    P0_rise_total)
+fprintf("    Inlet Total Temperature (total):  %12.3f K\n",     T0_stages(1))
+fprintf("    Inlet Total Pressure (total):     %12.3f Pa\n",    P0_stages(1))
+fprintf("    Exit Total Temperature (total):   %12.3f K\n",     T0_stages(end))
+fprintf("    Exit Total Pressure (total):      %12.3f Pa\n",    P0_stages(end))
+fprintf("Aerodynamics:\n")
+fprintf("    Rotor Diffusion Factor:           %12.3f\n",       rps.D_mr)
+fprintf("    Stator Diffusion Factor:          %12.3f\n",       rps.D_ms)
+fprintf("    Stage Degree of Reaction:         %12.3f\n",       rps.degR_m)
+fprintf("    De Haller Ratio Used:             %12.3f\n",       deHaller)
+fprintf("    Rotor Inlet Mach Number:          %12.3f\n",       Mw_1m)
+fprintf("    Stator Inlet Mach Number:         %12.3f\n",       Mc_2m)
+fprintf("    Compressor Inlet Mach Number:     %12.3f\n",       Mc_1m)
+fprintf("    Compressor Outlet Mach Number:    %12.3f\n",       Mc_exit)
+fprintf("Triangles:\n")
+fprintf("    Rotor Turning:                    %12.3f deg\n",   abs(beta_2m - beta_1m))
+fprintf("    Stator Turning:                   %12.3f deg\n",   abs(alpha_1m - alpha_2m))
+fprintf("Misc:\n")
+fprintf("    Number of Stages (calculated):    %12.3f\n",       num_stages_actual)
+fprintf("    Number of Stages (rounded up):    %12.3f\n",       num_stages)
+fprintf("    Blade Chord Length:               %12.3f m\n",     chord_m)
+fprintf("    RPM:                              %12.3f rpm\n",   rpm)
+fprintf("    Mass Flow:                        %12.3f kg/s\n",  m_dot)
+fprintf("    Inlet Tip Diameter:               %12.3f mm\n",  FF.r_tip_vec_full(1)*2*1000)
+fprintf("\n======== Warnings ========\n")
 
 %% Functions
 function D = D_factor(W1, W2, Ctheta_1, Ctheta_2, sigma)
