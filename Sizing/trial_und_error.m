@@ -4,19 +4,19 @@ load("Turbofan.mat")
 
 %% Design Variables
 % Constants
-gamma = Turbofan.Specs.Gammas.c_lp;     %1.4;    % Specific heat ratio           |
-cp = Turbofan.Cp.c_LP;              %1004;      % Specific heat                 | J/(kg*K)
+gamma = Turbofan.Specs.Gammas.cLP;     %1.4;    % Specific heat ratio           |
+cp = Turbofan.Cp.cLP;              %1004;      % Specific heat                 | J/(kg*K)
 
 
 % Inlet Conditions
-T0_1 = Turbofan.Thermos.S2.T0; %298;      % Ambient total temperature     | Kelvin        (absolute) spanwise constant
-P0_1 = Turbofan.Thermos.S2.P0; %101000;   % Ambient total pressure        | Pascals       (absolute) spanwise constant
+T0_1 = Turbofan.Thermos.S2.T0; %298;      % Inlet total temperature     | Kelvin        (absolute) spanwise constant
+P0_1 = Turbofan.Thermos.S2.P0; %101000;   % Inlet total pressure        | Pascals       (absolute) spanwise constant
 
 
 % Design choices
-Pr_total = 3;%Turbofan.Specs.desPR.c_lp; %20;  % Overall pressure ratio        |
+Pr_total = Turbofan.Specs.desPR.cLP; %20;  % Overall pressure ratio        |
 e_c = 0.9;      % Polytropic efficiency         |
-m_dot = 0.485;%Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
+m_dot = Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
 htt_rr = 0.55;   % Hub to tip radius ratio       |
 deHaller = 0.72;            % typical value
 min_reynolds = 300000;

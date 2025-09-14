@@ -84,19 +84,19 @@ rotor_params =  IFN.blade_parameters(T_R, T_R_LE, T_R_TE, T_Cx, T_ttc, T_zeta, T
 
 % Create Figure
 figure(1)
-tiledlayout(1,1, TileSpacing='tight', Padding='tight')
+tiledlayout(1,4, TileSpacing='tight', Padding='tight')
 nexttile
 title("Full Blade")
 plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, 2:length(rotor_blade)-1, mid_profile_index)
-% nexttile
-% title("Hub Profiles")
-% plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, 2, 2)
-% nexttile
-% title("Mid Profiles")
-% plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, mid_profile_index, mid_profile_index)
-% nexttile
-% title("Tip Profiles")
-% plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, length(rotor_blade)-1, length(rotor_blade)-1)
+nexttile
+title("Hub Profiles")
+plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, 2, 2)
+nexttile
+title("Mid Profiles")
+plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, mid_profile_index, mid_profile_index)
+nexttile
+title("Tip Profiles")
+plotSet(rotor_blade, stator_blade, plot_throat, plot_t_max, plot_spline_controls, LE_align, show_curvature, flip_stator, num_stators, num_rotors, length(rotor_blade)-1, length(rotor_blade)-1)
 
 % Export profiles for Solidworks and Ansys
 export(rotor_blade, stator_blade, LE_align, mid_profile_index, mid_profile_index)

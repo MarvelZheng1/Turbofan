@@ -1,19 +1,14 @@
 clear;clc;clf
 
 M_f = 0.85;                     % Flight mach number 
-% g_cold = 1.401;               % Pre-combustion specific heat ratio (assumed constant)
-% g_hot = 1.33;                 % Post-combustion specific heat ratio (assumed constant) 
-% specHeat_cold = 1004;         % specific heat for cold components [J/kgK]
-% specHeat_hot = 1156;          % specific heat for hot components [J/kgK]
+target_thrust = 360 * 4.44822;   % Newtons (converted from lbf by *4.44822)
+bypass = 3;                     % Bypass ratio!! (3: fan diameter = 2*(core diameter)
+
 QR = 45000000;                  % heat of reaction of jetA [J/kg]
-
-target_thrust = 250 * 4.44822;   % Newtons (converted from lbf by *4.44822)
-
 combustion_temp = 1750;         % Temperature of combustion (burner outlet temperature, T04)    | Kelvin
 Rp = 287;                       % Gas constants of products
 Ra = 287;                       % Gas constants of air
 
-bypass = 3;                     % Bypass ratio!! (fan diameter = 2*(core diameter)
 
 Info = struct( ...
     "M_f",              M_f, ...
@@ -28,8 +23,8 @@ Info = struct( ...
 % Design Pressure Ratios
 Pr = struct( ...
     "f",    1.2, ...        % Fan           outlet/inlet, P02/P015
-    "c_lp", sqrt(4), ...        % Compressor    outlet/inlet, P03/P02
-    "c_hp", sqrt(4), ...        % Compressor    outlet/inlet, P03/P02
+    "cLP", sqrt(5), ...        % LP Compressor    outlet/inlet, P03/P02
+    "cHP", sqrt(5), ...        % HP Compressor    outlet/inlet, P03/P02
     "b",    1  ...       % Burner         outlet/inlet, P04/P03
     );
 
@@ -38,11 +33,11 @@ eta = struct( ...
     "d",     0.94, ...      % Diffuser
     "f",     0.85, ...      % Fan
     "fn",    0.98, ...      % Fan Nozzle
-    "c_lp",  0.83, ...      % LP Compressor
-    "c_hp",  0.83, ...      % HP Compressor
+    "cLP",  0.83, ...      % LP Compressor
+    "cHP",  0.83, ...      % HP Compressor
     "b",     1.00, ...      % Burner
-    "t_hp",  0.89, ...      % HP Turbine
-    "t_lp",  0.89, ...      % LP Turbine
+    "tHP",  0.89, ...      % HP Turbine
+    "tLP",  0.89, ...      % LP Turbine
     "n",     0.98  ...      % Nozzle
     );
 
@@ -52,74 +47,78 @@ g = struct( ...
     "d",     1.400, ...     % Diffuser
     "f",     1.400, ...     % Fan
     "fn",    1.400, ...     % Fan Nozzle
-    "c_lp",  1.400, ...     % LP Compressor
-    "c_hp",  1.400, ...     % HP Compressor
+    "cLP",  1.400, ...     % LP Compressor
+    "cHP",  1.400, ...     % HP Compressor
     "b",     1.300, ...     % Burner
-    "t_hp",  1.320, ...     % HP Turbine
-    "t_lp",  1.320, ...     % LP Turbine
+    "tHP",  1.320, ...     % HP Turbine
+    "tLP",  1.320, ...     % LP Turbine
     "n",     1.340  ...     % Nozzle
     );
 
 %% Ambient Conditions (v=0, so static = total)
-Ta = 298;             % Ambient static/total temperature    | Kelvin
-Pa = 101300;          % Ambient static/total pressure       | Pascals
+T_0 = 298;             % Ambient static/total temperature    | Kelvin
+P_0 = 101300;          % Ambient static/total pressure       | Pascals
 
-u_a = M_f*sqrt(g.a*Ra*Ta);
+u_a = M_f*sqrt(g.a*Ra*T_0);
 
 %% lmao who cares about station 1 am i right (???)
 %% Station 1.5: Diffuser Outlet /Fan Inlet
-T015 = Ta*(1 + (g.a-1)/2 * M_f^2);
-P015 = Pa*(1 + eta.d*(T015/Ta - 1))^(g.d/(g.d-1));
+T0_15 = T_0*(1 + (g.a-1)/2 * M_f^2);
+P0_15 = P_0*(1 + eta.d*(T0_15/T_0 - 1))^(g.d/(g.d-1));
 
 %% Station 2: Fan Outlet/LP Compressor Inlet
-Cpf = (Ra*g.f)/(g.f-1);     % Specific heat of fan
+Cp_f = (Ra*g.f)/(g.f-1);     % Specific heat of fan
 
-T02 = T015*(1 + 1/eta.f*(Pr.f^((g.f-1)/g.f)-1));
-P02 = P015*Pr.f;
+T0_2 = T0_15*(1 + 1/eta.f*(Pr.f^((g.f-1)/g.f)-1));
+P0_2 = P0_15*Pr.f;
 
 %% Station 2.5: LP Compressor Outlet/HP Compressor Inlet
-Cpc_LP = (Ra*g.c_lp)/(g.c_lp-1);     % Specific heat of compressor
+Cp_cLP = (Ra*g.cLP)/(g.cLP-1);     % Specific heat of compressor
 
-T025 = T02*(1 + 1/eta.c_lp*(Pr.c_lp^((g.c_lp-1)/g.c_lp)-1));
-P025 = P02*Pr.c_lp;
+T0_25 = T0_2*(1 + 1/eta.cLP*(Pr.cLP^((g.cLP-1)/g.cLP)-1));
+P0_25 = P0_2*Pr.cLP;
 
 %% Station 3: HP Compressor Outlet/Burner Inlet
-Cpc_HP = (Ra*g.c_hp)/(g.c_hp-1);     % Specific heat of compressor
+Cp_cHP = (Ra*g.cHP)/(g.cHP-1);     % Specific heat of compressor
 
-T03 = T025*(1 + 1/eta.c_hp*(Pr.c_hp^((g.c_hp-1)/g.c_hp)-1));
-P03 = P025*Pr.c_hp;
+T0_3 = T0_25*(1 + 1/eta.cHP*(Pr.cHP^((g.cHP-1)/g.cHP)-1));
+P0_3 = P0_25*Pr.cHP;
 
 %% Station 4: Burner Outlet/HP Turbine Inlet
-Cpb = (Rp*g.b)/(g.b-1);     % Specific heat of burner
+Cp_b = (Rp*g.b)/(g.b-1);     % Specific heat of burner
 
-T04 = combustion_temp;
-P04 = P03*Pr.b;
+T0_4 = combustion_temp;
+P0_4 = P0_3*Pr.b;
 
-fr = (T04/T03 - 1)/((eta.b*QR)/(Cpb*T03)-T04/T03);   % Fuel-air ratio
+fr = (T0_4/T0_3 - 1)/((eta.b*QR)/(Cp_b*T0_3)-T0_4/T0_3);   % Fuel-air ratio
 
 %% Station 4.5: HP Turbine Outlet/LP Turbine Inlet
-Cpt_HP = (Rp*g.t_hp)/(g.t_hp-1);     % Specific heat of turbine
+Cp_tHP = (Rp*g.tHP)/(g.tHP-1);     % Specific heat of turbine
 
-T045 = ((1+fr)*T04*Cpt_HP - Cpc_HP*(T03-T025)) / ((1+fr)*Cpt_HP);
-P045 = P04*(1 - 1/eta.t_hp*(1 - T045/T04))^(g.t_hp/(g.t_hp-1));
+T0_45 = ((1+fr)*T0_4*Cp_tHP - Cp_cHP*(T0_3-T0_25)) / ((1+fr)*Cp_tHP);
+P0_45 = P0_4*(1 - 1/eta.tHP*(1 - T0_45/T0_4))^(g.tHP/(g.tHP-1));
 
 %% Station 5: LP Turbine Outlet/Nozzle Inlet
-Cpt_LP = (Rp*g.t_lp)/(g.t_lp-1);     % Specific heat of turbine
+Cp_tLP = (Rp*g.tLP)/(g.tLP-1);     % Specific heat of turbine
 
-T05 = ((1+fr)*T045*Cpt_LP - Cpc_LP*(T025-T02) - bypass*Cpf*(T02-T015)) / ((1+fr)*Cpt_LP);
-P05 = P045*(1 - 1/eta.t_lp*(1 - T05/T045))^(g.t_lp/(g.t_lp-1));
+T0_5 = ((1+fr)*T0_45*Cp_tLP - Cp_cLP*(T0_25-T0_2) - bypass*Cp_f*(T0_2-T0_15)) / ((1+fr)*Cp_tLP);
+P0_5 = P0_45*(1 - 1/eta.tLP*(1 - T0_5/T0_45))^(g.tLP/(g.tLP-1));
 
 %% Station 6: Afterburner (there is none lmao)
-T06 = T05;
-P06 = P05;
+T0_6 = T0_5;
+P0_6 = P0_5;
 
-%% Station 7: Nozzle Outlet/Exit Ambient
-T7 = Ta;
-P7 = Pa;
+%% Station 7: Nozzle Outlet
+T0_7 = T0_6;
+P0_7 = P0_6;
+
+%% Station 8: Aft Ambient
+T_8 = T_0;
+P_8 = P_0;
 
 %% Nozzle Exit Velocities
-u_ec = sqrt(2*eta.n *(g.n /(g.n -1))*Rp*T06*(1 - (Pa/P06)^((g.n -1)/g.n )));
-u_ef = sqrt(2*eta.fn*(g.fn/(g.fn-1))*Ra*T02*(1 - (Pa/P02)^((g.fn-1)/g.fn)));
+u_ec = sqrt(2*eta.n *(g.n /(g.n -1))*Rp*T0_7*(1 - (P_8/P0_7)^((g.n -1)/g.n )));
+u_ef = sqrt(2*eta.fn*(g.fn/(g.fn-1))*Ra*T0_2*(1 - (P_8/P0_2)^((g.fn-1)/g.fn)));
 
 %% Performance Metrics
 ST = (1+fr)*u_ec + bypass*u_ef - (1+bypass)*u_a;     % Specific Thrust
@@ -141,7 +140,7 @@ syms m_dot
 Info.mass_flow = double(vpa(solve(target_thrust == ST * m_dot, m_dot)));
 Info.mass_flow_air = Info.mass_flow / (1 + fr);
 Info.mass_flow_fuel = Info.mass_flow - Info.mass_flow_air;
-Info.core_mass_flow_air = Info.mass_flow_air/bypass;
+Info.core_mass_flow_air = Info.mass_flow_air/(1+bypass);
 
 Info.u_ec = u_ec;
 Info.u_ef = u_ef;
@@ -158,45 +157,45 @@ fprintf("n0: %3f\n", eta_0)
 %% Create Temperature and Pressure Struct
 T0P0 = struct( ...
     "Sa", struct( ...
-        "T0", Ta, ...
-        "P0", Pa), ...
+        "T0", T_0, ...
+        "P0", P_0), ...
     "S15", struct( ...
-        "T0", T015, ...
-        "P0", P015), ...
+        "T0", T0_15, ...
+        "P0", P0_15), ...
     "S2", struct( ...
-        "T0", T02, ...
-        "P0", P02), ...
+        "T0", T0_2, ...
+        "P0", P0_2), ...
     "S25", struct( ...
-        "T0", T025, ...
-        "P0", P025), ...
+        "T0", T0_25, ...
+        "P0", P0_25), ...
     "S3", struct( ...
-        "T0", T03, ...
-        "P0", P03), ...
+        "T0", T0_3, ...
+        "P0", P0_3), ...
     "S4", struct( ...
-        "T0", T04, ...
-        "P0", P04), ...
+        "T0", T0_4, ...
+        "P0", P0_4), ...
     "S45", struct( ...
-        "T0", T045, ...
-        "P0", P045), ...
+        "T0", T0_45, ...
+        "P0", P0_45), ...
     "S5", struct( ...
-        "T0", T05, ...
-        "P0", P05), ...
+        "T0", T0_5, ...
+        "P0", P0_5), ...
     "S6", struct( ...
-        "T0", T06, ...
-        "P0", P06), ...
+        "T0", T0_6, ...
+        "P0", P0_6), ...
     "S7", struct( ...
-        "T", T7, ...
-        "P", P7) ...
+        "T", T0_7, ...
+        "P", P0_7) ...
     );
 
 %% Create Cp Struct
 Cp = struct( ...
-    "f",    Cpf, ...
-    "c_LP", Cpc_LP, ...
-    "c_HP", Cpc_HP, ...
-    "b",    Cpb, ...
-    "t_HP", Cpt_HP, ...
-    "t_LP", Cpt_LP ...
+    "f",    Cp_f, ...
+    "cLP", Cp_cLP, ...
+    "cHP", Cp_cHP, ...
+    "b",    Cp_b, ...
+    "tHP", Cp_tHP, ...
+    "tLP", Cp_tLP ...
     );
 
 % clear Ta Pa T015 P015 T02 P02 T025 P025 T03 P03 T04 P04 T045 P045 T05 P05 T06 P06 T07 P07
@@ -221,10 +220,10 @@ tiledlayout(1,1, TileSpacing='tight', Padding='tight')
 nexttile
 title("Temperature and Pressure at Various Stations")
 yyaxis left
-plot([0,1.5,2,2.5,3,4,4.5,5,6,7], [Pa, P015, P02, P025, P03, P04, P045, P05, P06, P7])
+plot([0,1.5,2,2.5,3,4,4.5,5,6,7,8], [P_0, P0_15, P0_2, P0_25, P0_3, P0_4, P0_45, P0_5, P0_6, P0_7, P_8])
 ylabel("Pressure")
 yyaxis right
-plot([0,1.5,2,2.5,3,4,4.5,5,6,7], [Ta, T015, T02, T025, T03, T04, T045, T05, T06, T7])
+plot([0,1.5,2,2.5,3,4,4.5,5,6,7,8], [T_0, T0_15, T0_2, T0_25, T0_3, T0_4, T0_45, T0_5, T0_6, T0_7, T_8])
 ylabel("Temperature")
 xlabel("Station Number")
 grid on

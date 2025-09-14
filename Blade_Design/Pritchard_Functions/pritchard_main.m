@@ -19,7 +19,7 @@ function blade = pritchard_main(params)
         try
             blade = pritchardCurves(pts.x_coords, pts.y_coords, pts.betas, params.R_LE, params.R_TE, o, params.res);
         catch
-            warning("bro what the hell man")
+            warning("pritchard_main error")
             blade.failcode = "knots broken";
             return
         end
