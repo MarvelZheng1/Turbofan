@@ -100,7 +100,7 @@ fitness = curvature_weight .* norm_maxCurvature + zweifel_weight .* norm_targetZ
 % Create Figure
 figure(1)
 hold on
-tiledlayout(1,2, TileSpacing='tight', Padding='tight')
+tiledlayout(1,3, TileSpacing='tight', Padding='tight')
 nexttile
 scatter3(Cx_space, ttc_space, N_B_space, 10, max_curvature, 'filled')
 title("Max Curvature")
@@ -112,6 +112,14 @@ colorbar
 nexttile
 scatter3(Cx_space, ttc_space, N_B_space, 10, average_zweifel, 'filled')
 title("Average Zweifel")
+xlabel("Axial Chord")
+ylabel("Thickness to Chord Ratio")
+zlabel("Number of Blades")
+colorbar
+
+nexttile
+scatter3(Cx_space, ttc_space, N_B_space, 10, fitness, 'filled')
+title("Fitness")
 xlabel("Axial Chord")
 ylabel("Thickness to Chord Ratio")
 zlabel("Number of Blades")
@@ -146,13 +154,13 @@ zlabel("Number of Blades")
 colorbar
 
 
-figure(3)
-hold on
-tiledlayout(1,1, TileSpacing='tight', Padding='tight')
-nexttile
-scatter3(Cx_space, ttc_space, N_B_space, 10, fitness, 'filled')
-title("Fitness")
-xlabel("Axial Chord")
-ylabel("Thickness to Chord Ratio")
-zlabel("Number of Blades")
-colorbar
+% figure(3)
+% hold on
+% tiledlayout(1,1, TileSpacing='tight', Padding='tight')
+% nexttile
+% scatter3(Cx_space, ttc_space, N_B_space, 10, fitness, 'filled')
+% title("Fitness")
+% xlabel("Axial Chord")
+% ylabel("Thickness to Chord Ratio")
+% zlabel("Number of Blades")
+% colorbar

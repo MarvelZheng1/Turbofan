@@ -37,7 +37,7 @@ P_1 = P0_1/(1+(gamma-1)*Mc_1m^2/2)^(gamma/(gamma-1));
 R = (gamma-1)*cp/gamma;
 rho_1 = P_1/(R*T_1);
 a_1 = sqrt((gamma-1)*cp*T_1);
-
+% asdf
 z_1m = Mz_1m*a_1;
 C_1m = z_1m/cosd(alpha_1m);
 

@@ -1,7 +1,7 @@
 clear;clc;clf
 
 M_f = 0.85;                     % Flight mach number 
-target_thrust = 360 * 4.44822;   % Newtons (converted from lbf by *4.44822)
+target_thrust = 5000 * 4.44822;   % Newtons (converted from lbf by *4.44822)
 bypass = 3;                     % Bypass ratio!! (3: fan diameter = 2*(core diameter)
 
 QR = 45000000;                  % heat of reaction of jetA [J/kg]
