@@ -238,7 +238,7 @@ a_2 = sqrt((gamma-1)*cp*T_2m);
 
 Mc_2m = C_2m/a_2;
 
-FF = free_vortex_IGV(rps, r_hub_vec, r_tip_vec, ang_vel, degR_m, rho_m_vec, cp, R, T0_stages, m_dot, e_c, gamma);
+FF = Compressor_Free_Vortex(rps, r_hub_vec, r_tip_vec, ang_vel, degR_m, rho_m_vec, cp, R, T0_stages, m_dot, e_c, gamma);
 
 
 
