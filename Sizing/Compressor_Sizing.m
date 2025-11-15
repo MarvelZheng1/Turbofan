@@ -9,64 +9,67 @@ cp = Turbofan.Cp.cLP;              %1004;      % Specific heat                 |
 
 
 % Inlet Conditions
-T0_1 = Turbofan.Thermos.S2.T0; %298;      % Inlet total temperature     | Kelvin        (absolute) spanwise constant
-P0_1 = Turbofan.Thermos.S2.P0; %101000;   % Inlet total pressure        | Pascals       (absolute) spanwise constant
+T0_1m = Turbofan.Thermos.S2.T0; %298;      % Inlet total temperature     | Kelvin        (absolute) spanwise constant
+P0_1m = Turbofan.Thermos.S2.P0; %101000;   % Inlet total pressure        | Pascals       (absolute) spanwise constant
 
 
 % Design choices
 Pr_total = Turbofan.Specs.desPR.cLP; %20;  % Overall pressure ratio        |
 e_c = 0.9;      % Polytropic efficiency         |
-m_dot = Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
-htt_rr = 0.55;   % Hub to tip radius ratio       |
+% m_dot = Turbofan.Specs.Info.core_mass_flow_air; %100;    % Mass flow rate                | kg/s
+htt_rr = 0.6;   % Hub to tip radius ratio       |
 deHaller = 0.72;            % typical value
 min_reynolds = 300000;
 kin_visc = 1.46e-5;                           % | From chart, 0km
 
-alpha_1m = 30;                                 % | Inlet Swirl
+alpha_1m = 30;                                 % | Inlet Swirl, degrees
 Mz_1m = 0.45;                                  % | Initial axial mach number
-U_tip_1 = 350;
+U_tip_1 = 350;                                  % | Inlet rotor tip speed, m/s
+
+r_tip_1 = 100 / 1000;                           % | Inlet tip radius, mm / 1000 to get meters
 
 %% Compressor inlet conditions
 % Design assumptions
 Mc_1m = Mz_1m/cosd(alpha_1m);
 
 % Station 1 Static Pressure and Temperature
-T_1 = T0_1/(1+(gamma-1)*Mc_1m^2/2);
-P_1 = P0_1/(1+(gamma-1)*Mc_1m^2/2)^(gamma/(gamma-1));
+T_1m = T0_1m/(1+(gamma-1)*Mc_1m^2/2);
+P_1m = P0_1m/(1+(gamma-1)*Mc_1m^2/2)^(gamma/(gamma-1));
 
 R = (gamma-1)*cp/gamma;
-rho_1 = P_1/(R*T_1);
-a_1 = sqrt((gamma-1)*cp*T_1);
-% asdf
-z_1m = Mz_1m*a_1;
-C_1m = z_1m/cosd(alpha_1m);
+rho_1m = P_1m/(R*T_1m);
+a_1m = sqrt((gamma-1)*cp*T_1m);
+z_1m = Mz_1m*a_1m;
+C_1m = Mc_1m*a_1m;
 
 % Initial inlet annulus geometry, assume constant spanwise distributions
-A_1 = m_dot/rho_1/z_1m;
-r_tip_1 = sqrt(A_1/pi/(1-htt_rr^2));
+% A_1 = m_dot/rho_1/z_1m;
+% r_tip_1 = sqrt(A_1/pi/(1-htt_rr^2));
 r_hub_1 = r_tip_1*htt_rr;
+A_1 = (r_tip_1^2 - r_hub_1^2)*pi;
+m_dot = rho_1m*z_1m*A_1;
 
 %% Compressor exit conditions
 Tr_total = Pr_total^((gamma-1)/(e_c*gamma));
 
-P0_exit = P0_1 * Pr_total;  % spanwise constant (design choice i think)
-T0_exit = T0_1 * Tr_total;  % spanwise constant (design choice i think)
+P0_exit_m = P0_1m * Pr_total;  % at midspan
+T0_exit_m = T0_1m * Tr_total;  % at midspan
 
-alpha_exit = alpha_1m;   % repeating stage | spanwise constant (design choice i think)
-Cz_exit = z_1m;          % design choice   | spanwise constant (design choice i think)
-C_exit = C_1m;
+alpha_exit_m = alpha_1m;   % repeating stage | at midspan
+z_exit_m = z_1m;          % design choice   | at midspan
+C_exit_m = C_1m;
 
-T_exit = T0_exit - C_exit^2/(2*cp); % | spanwise constant (design choice i think)
+T_exit_m = T0_exit_m - C_exit_m^2/(2*cp); % | at midspan
 
-a_exit = sqrt((gamma-1)*cp*T_exit);
-Mz_exit = Cz_exit/a_exit;
-Mc_exit = Mz_exit/cosd(alpha_exit);
+a_exit_m = sqrt((gamma-1)*cp*T_exit_m);
+Mz_exit_m = z_exit_m/a_exit_m;
+Mc_exit_m = Mz_exit_m/cosd(alpha_exit_m);
 
-P_exit = P0_exit/(1+(gamma-1)*Mc_exit^2/2)^(gamma/(gamma-1)); % | spanwise constant (design choice i think)
-rho_exit = P_exit/(R*T_exit);
+P_exit_m = P0_exit_m/(1+(gamma-1)*Mc_exit_m^2/2)^(gamma/(gamma-1)); % | at midspan
+rho_exit_m = P_exit_m/(R*T_exit_m);
 
 % Exit annulus geometry
-A_exit = m_dot/rho_exit/Cz_exit;
+A_exit = m_dot/rho_exit_m/z_exit_m;
 
 syms h
 r_mean_1 = (r_tip_1 + r_hub_1)/2;
@@ -92,7 +95,7 @@ W_1m = z_1m / cosd(beta_1m);
 Ctheta_1m = z_1m*tand(alpha_1m);
 Wtheta_1m = U_1m - Ctheta_1m;
 
-Mw_1m = W_1m/a_1;
+Mw_1m = W_1m/a_1m;
 
 % Station 2 stuff
 U_2m = U_1m;        % Initial Approximation, true if we adjust both hub and shroud
@@ -163,14 +166,14 @@ rps = struct( ...
 save("rps", "rps")
 
 %% Staging
-T0_2m = T0_1 + U_1m*(Ctheta_2m-Ctheta_1m)/cp;
+T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/cp;
 T_2m  = T0_2m - C_2m^2/(2*cp);
 a_2 = sqrt((gamma-1)*cp*T_2m);
 
 Mc_2m = C_2m/a_2;
 
-temp_rise_total = T0_exit - T0_1;
-temp_rise_per_stage = T0_2m - T0_1;
+temp_rise_total = T0_exit_m - T0_1m;
+temp_rise_per_stage = T0_2m - T0_1m;
 num_stages_actual = temp_rise_total/temp_rise_per_stage;
 num_stages = ceil(num_stages_actual);
 num_stations = num_stages*2 + 1;
@@ -185,13 +188,13 @@ Tr_stages = ones(1, num_stages);
 Pr_stages = ones(1, num_stages);
 T0_stages = ones(1, num_stages+1);
 P0_stages = ones(1, num_stages+1);
-T0_stages(1) = T0_1;
-P0_stages(1) = P0_1;
+T0_stages(1) = T0_1m;
+P0_stages(1) = P0_1m;
 
 r_hub_vec(1) = r_hub_1;
 r_tip_vec(1) = r_tip_1;
 
-T0_current = T0_1;
+T0_current = T0_1m;
 for i = 1:num_stages
     T0_next = T0_current + temp_rise_per_stage;
     Tr_stages(i) = T0_next / T0_current;
@@ -232,7 +235,7 @@ stagger_ang = beta_1m - camber_m/2 - i;
 num_blades_rotor = 2 * pi * r_mean_1 / chord_m;
 
 % Subsonic stator design
-T0_2m = T0_1 + U_1m*(Ctheta_2m-Ctheta_1m)/cp;
+T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/cp;
 T_2m  = T0_2m - C_2m^2/(2*cp);
 a_2 = sqrt((gamma-1)*cp*T_2m);
 
@@ -334,7 +337,7 @@ fprintf("    De Haller Ratio Used:             %12.3f\n",       deHaller)
 fprintf("    Rotor Inlet Mach Number:          %12.3f\n",       Mw_1m)
 fprintf("    Stator Inlet Mach Number:         %12.3f\n",       Mc_2m)
 fprintf("    Compressor Inlet Mach Number:     %12.3f\n",       Mc_1m)
-fprintf("    Compressor Outlet Mach Number:    %12.3f\n",       Mc_exit)
+fprintf("    Compressor Outlet Mach Number:    %12.3f\n",       Mc_exit_m)
 fprintf("Triangles:\n")
 fprintf("    Rotor Turning:                    %12.3f deg\n",   abs(beta_2m - beta_1m))
 fprintf("    Stator Turning:                   %12.3f deg\n",   abs(alpha_1m - alpha_2m))

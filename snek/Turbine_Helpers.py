@@ -1,0 +1,155 @@
+import numpy as np
+import AEQ
+import dataframes
+
+def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1m, P0_1m, r_mean, ang_vel, gamma_t, R_t, Cp_t, m_dot_t):
+    # ======== INPUTS ======== 
+    # initial,      | Whether or not this function call is for the first turbine stage
+    # Mc_2m,        | Target stator exit Mach number
+    # Mw_3Rm,       | Target rotor exit relative Mach number
+    # alpha_1m,     | Stator inlet angle
+    # schrodinkler, | LE SCHRODINKER: If first turbine stage, specify stator nozzle exit angle. If NOT first turbine stage, specify axial velocity z_3m of previous stage
+    # T0_1m,        | Stator inlet total temperature
+    # P0_1m,        | Stator inlet total pressure
+    # r_mean,       | Meanline radius
+    # ang_vel,      | Angular Velocity
+    # gamma_t,      | Specific heat ratio
+    # R_t,          | Gas constant R
+    # Cp_t,         | Specific heat at constant pressure for the turbine
+    # m_dot_t       | Turbine mass flow rate
+    
+    # ======== Pitchline Calcs (turbine-specific station numbers) ========
+    T0_2m = T0_1m   # No total temp drop over stator
+    T_2m = AEQ.T_T0(gamma_t, Mc_2m)*T0_2m  
+    a_2m = AEQ.a(gamma_t, R_t, T_2m)
+
+    C_2m = Mc_2m*a_2m
+    
+    if initial:
+        alpha_2m = schrodinkler
+        Ctheta_2m = C_2m*np.sin(alpha_2m)
+        z_1m = z_2m = z_3m = C_2m*np.cos(alpha_2m)
+    else:
+        z_1m = z_2m = z_3m = schrodinkler
+        alpha_2m = np.acos(z_2m/C_2m)
+        Ctheta_2m = C_2m*np.sin(alpha_2m)
+
+    C_1m = z_1m/np.cos(alpha_1m)
+    Ctheta_1m = C_1m*np.sin(alpha_1m)
+
+    T_1m = T0_1m - C_1m**2/(2*Cp_t)
+    a_1m = AEQ.a(gamma_t, R_t, T_1m)
+    Mc_1m = C_1m/a_1m
+    
+    # Stator Solidity
+    optimal_zweifel = 1
+    fake_optimal_stator_solidity = AEQ.sigXzweif(alpha_1m, alpha_2m) / optimal_zweifel
+    Ctheta_mean = (Ctheta_1m + Ctheta_2m)/2
+    alpha_2_stagger = np.atan(Ctheta_mean/z_2m)
+    real_optimal_stator_solidity = fake_optimal_stator_solidity/np.cos(alpha_2_stagger)
+
+    # Stator deviation angle and throat/spacing ratio
+    if Mc_2m <= 1:
+        stator_dev = (alpha_2m - alpha_1m) / (8 * real_optimal_stator_solidity)
+        o_s = np.cos(alpha_2m)
+    else:
+        stator_dev = 0
+        o_s = np.cos(alpha_2m) / AEQ.A_Astar(gamma_t, Mc_2m)
+
+    # ======== Have you tried spinning? It's a great trick ========
+    # Calculating pitchline reference frame tangential velocity U
+    U_1m = U_2m = U_3m = ang_vel * r_mean
+    
+    # Converting to rotating reference frame
+    Wtheta_2m = Ctheta_2m - U_2m
+    Wtheta_1m = Ctheta_1m - U_1m
+    
+    # Rotor exit relative and absolute tangential speed
+    Wtheta_3m = -np.sqrt( (Mw_3Rm**2*(a_2m**2+(gamma_t-1)*Wtheta_2m**2/2)-z_2m**2) / (1+(gamma_t-1)*Mw_3Rm**2/2) )
+    Ctheta_3m = U_2m + Wtheta_3m
+
+    # Calculating miscellaneous velocities and angles
+    W_2m = np.sqrt(z_2m**2 + Wtheta_2m**2)
+    W_3m = np.sqrt(z_3m**2 + Wtheta_3m**2)
+    C_3m = np.sqrt(z_3m**2 + Ctheta_3m**2)
+    W_1m = np.sqrt(z_1m**2 + Wtheta_1m**2)
+    
+    beta_1m = np.acos(z_1m/W_1m)
+    beta_2m = np.acos(z_2m/W_2m)
+    beta_3m = -np.acos(z_3m/W_3m)
+    alpha_3m = np.atan(Ctheta_3m/z_3m)
+
+    # Miscellaneous temps n' stuff
+    a_3m = W_3m/Mw_3Rm                  # Station 3 (rotor exit) speed of sound
+    Mw_2m = W_2m/a_2m                   # Station 2 (rotor inlet) relative mach number
+    Mw_1m = W_1m/a_1m                   # Station 1 (stator inlet) relative mach number
+    T0_2Rm = T_2m + W_2m**2/(2*Cp_t)    # Station 2 (Rotor inlet) relative total temperature 
+
+    Mz_1m = z_1m/a_1m                   # Station 1 axial mach number
+    Mz_2m = z_2m/a_2m                   # Station 2 axial mach number
+    Mz_3m = z_3m/a_3m                   # Station 3 axial mach number
+    
+    profileLoss_s = 0.06                # Assumed stator pressure loss coefficient
+    
+    # A lot of random temperatures and pressures, have fun reading through them lol
+    P_1m = P0_1m * AEQ.P_P0(gamma_t, Mc_1m)
+    P0_2m = -profileLoss_s*(P0_1m - P_1m)+P0_1m
+    P_2m = P0_2m * AEQ.P_P0(gamma_t, Mc_2m)
+    P0_2Rm = P_2m / AEQ.P_P0(gamma_t, Mw_2m)
+    T0_3m = T0_2m + U_2m*(Ctheta_3m-Ctheta_2m)/Cp_t
+    T_3m = T0_3m - C_3m**2/(2*Cp_t)
+    T0_3Rm = T_3m + W_3m**2/(2*Cp_t)
+    a_3m = AEQ.a(gamma_t, R_t, T_3m)
+    Mc_3m = C_3m/a_3m
+    
+    profileLoss_r = 0.08                # Assumed rotor pressure loss coefficient
+    P0_3Rm = -profileLoss_r*(P0_2Rm - P_2m)+P0_2Rm
+    P_3m = P0_3Rm * AEQ.P_P0(gamma_t, Mw_3Rm)
+    P0_3m = P_3m / AEQ.P_P0(gamma_t, Mc_3m)
+    
+    # Rotor solidity
+    optimal_zweifel = 1
+    fake_optimal_rotor_solidity = AEQ.sigXzweif(beta_2m, beta_3m) / optimal_zweifel     # "Optimal" solidity based on Zweifel
+    Wtheta_mean = (Wtheta_2m + Wtheta_3m)/2                                             # Average relative swirl
+    beta_stagger = np.atan(Wtheta_mean/z_3m)                                            # Stagger angle
+    real_optimal_stator_solidity = fake_optimal_rotor_solidity/np.cos(beta_stagger)     # Actual optimal solidity
+
+    # Rotor deviation angle
+    rotor_dev = (beta_3m - beta_2m)/(8*real_optimal_stator_solidity)                    # Rotor blade deviatino angle
+    
+    # Power
+    w_spec = U_2m*(Ctheta_2m-Ctheta_3m)     # Euler's
+    Powah = w_spec * m_dot_t                # Calculating stage power generation
+
+    degR_m = 1 - (Ctheta_2m + Ctheta_3m)/(2*U_2m)     # Stage degree of reaction
+
+    # ======== OUTPUT ========
+    velocityTriangle = dataframes.fullVelTriInfo(
+        C_1m, C_2m, C_3m,
+        W_1m, W_2m, W_3m,
+        U_1m, U_2m, U_3m,
+        z_1m, z_2m, z_3m,
+                                       
+        Mc_1m, Mc_2m, Mc_3m,
+        Mw_1m, Mw_2m, Mw_3Rm,
+        Mz_1m, Mz_2m, Mz_3m,
+                                       
+        Ctheta_1m, Ctheta_2m, Ctheta_3m,
+        Wtheta_1m, Wtheta_2m, Wtheta_3m,
+                                       
+        alpha_1m, alpha_2m, alpha_3m,
+        beta_1m,  beta_2m,  beta_3m
+        )
+    
+    turbineStageInfo = {
+        "degR_m" : degR_m,
+        "Powah"  : Powah,
+        "T0_1m"  : T0_1m,
+        "T0_2m"  : T0_2m,
+        "T0_3m"  : T0_3m,
+        "P0_1m"  : P0_1m,
+        "P0_2m"  : P0_2m,
+        "P0_3m"  : P0_3m
+    }
+
+    return [velocityTriangle, turbineStageInfo]

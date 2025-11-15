@@ -1,5 +1,5 @@
 % Calculates velocity triangles for a turbine stage at pitchline
-function tst = turbine_stage_pitchline(Mc_2m, alpha_1m, alpha_2m, T0_1m, P0_1m, r_mean, ang_vel, gamma_t, R_t, Cp_t, m_dot_t)
+function tst = Turbine_Stage_Pitchline(Mc_2m, alpha_1m, alpha_2m, T0_1m, P0_1m, r_mean, ang_vel, gamma_t, R_t, Cp_t, m_dot_t)
     T_2m = T0_1m/(1 + (gamma_t-1)/2*Mc_2m^2);
     a_2m = sqrt(gamma_t*R_t*T_2m);
     C_2m = Mc_2m * a_2m;

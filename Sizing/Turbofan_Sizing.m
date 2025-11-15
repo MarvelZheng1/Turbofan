@@ -214,6 +214,7 @@ Turbofan = struct( ...
 
 save("Turbofan.mat", "Turbofan")
 
+fprintf("%f", T0P0.S7.T)
 
 figure(1)
 tiledlayout(1,1, TileSpacing='tight', Padding='tight')

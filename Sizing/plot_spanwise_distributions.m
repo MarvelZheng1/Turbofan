@@ -36,7 +36,7 @@ function plot_spanwise_distributions(num_stages, num_stations, chord_m, r_mean_1
         trunk = linspace(0.25*r_hub_vec(1), 0.75*r_hub_vec(1), FF.num_streamlines);
     
         if mod(i, 2) == 0
-            style = '-k';
+            style = '-w';
         else
             style = '-b';
         end
@@ -65,7 +65,7 @@ function plot_spanwise_distributions(num_stages, num_stations, chord_m, r_mean_1
         trunk = linspace(0.25*r_hub_vec(1), 0.75*r_hub_vec(1), FF.num_streamlines);
     
         if mod(i, 2) == 0
-            style = '-k';
+            style = '-w';
         else
             style = '-b';
         end
