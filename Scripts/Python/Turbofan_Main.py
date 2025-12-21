@@ -12,38 +12,41 @@ import Component_Sizing
 # Dataclasses for storing important component parameters and values
 
 # Initializing dataclasses for component efficiencies, specific heat ratios, and pressure ratios
-eta = REF_structs.ByComponent(None,
-                  0.94, # Diffuser
-                  0.85, # Fan
-                  0.98, # Fan Nozzle
-                  0.83, # LP Compressor
-                  0.83, # HP Compressor
-                  1.00, # Burner
-                  0.89, # HP Turbime
-                  0.89, # LP Turbine
-                  0.98  # Nozzle
+eta = REF_structs.ByComponent(
+                None, # Ambient
+                0.94, # Diffuser
+                0.85, # Fan
+                0.98, # Fan Nozzle
+                0.83, # LP Compressor
+                0.83, # HP Compressor
+                1.00, # Burner
+                0.89, # HP Turbime
+                0.89, # LP Turbine
+                0.98  # Nozzle
 )
-gamma = REF_structs.ByComponent(1.4,  # Ambient
-                    1.4,  # Diffuser
-                    1.4,  # Fan
-                    1.4,  # Fan Nozzle
-                    1.4,  # LP Compressor
-                    1.4,  # HP Compressor
-                    1.3,  # Burner
-                    1.32, # HP Turbine
-                    1.32, # LP Turbine
-                    1.34  # Nozzle
+gamma = REF_structs.ByComponent(
+                1.4,  # Ambient
+                1.4,  # Diffuser
+                1.4,  # Fan
+                1.4,  # Fan Nozzle
+                1.4,  # LP Compressor
+                1.4,  # HP Compressor
+                1.3,  # Burner
+                1.32, # HP Turbine
+                1.32, # LP Turbine
+                1.34  # Nozzle
 )
-Pr = REF_structs.ByComponent(None,
-                 None,
-                 1.2,        # Fan
-                 None,
-                 m.sqrt(5), # LP Compressor
-                 m.sqrt(5), # HP Compressor
-                 1,          # Burner
-                 None,
-                 None,
-                 None
+Pr = REF_structs.ByComponent(
+                None,       # Ambient
+                None,       # Diffuser
+                1.2,        # Fan
+                None,       # Fan Nozzle
+                m.sqrt(5),  # LP Compressor
+                m.sqrt(5),  # HP Compressor
+                1,          # Burner
+                None,       # HP Turbine
+                None,       # LP Turbine
+                None        # Nozzle
 )
 
 # ======== Ambient Conditions and General Engine Parameters ========
@@ -78,10 +81,12 @@ compressor_params = {
     "U_tip_inlet" : 350,            # Inlet rotor tip speed, m/s
     "r_tip_inlet" : 100/1000        # Inlet rotor tip radius, in mm (divided by 1000 to get meters)
 }
-# compressor_info = Component_Sizing.Compressor_Sizing(compressor_params)
+compressor_info = Component_Sizing.Compressor_Sizing(compressor_params)
 # turbine_info = Component_Sizing.Turbine_Sizing(turbine_params)
 
-# plottingFuncs.plot_T0P0_vs_Stations(thermo)
+# Plots
+T0s = [a.T0 for a in vars(thermo).values()]
+P0s = [a.P0 for a in vars(thermo).values()]
 
 with open("results.txt", "w") as txt:
     txt.write("======== Thrust and Efficiencies ========\n")
