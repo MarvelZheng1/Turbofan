@@ -1,15 +1,16 @@
 import numpy as np
-from dataclasses import dataclass
+import math as m
 import sympy
-import AEQ
+import REF_AEQ
 
-# import Compressor_Helpers
-import Turbine_Helpers
+import HELP_Compressor
+import HELP_Turbine
+import REF_structs
 
-'''
+
 def Compressor_Sizing(params):
     gamma       = params["gamma"]
-    cp          = params["Cp_cLP"]
+    Cp          = params["Cp_cLP"]
     T0_1m       = params["T0_1"]
     P0_1m       = params["P0_1"]
     Pr_total    = params["Pr"]
@@ -27,12 +28,12 @@ def Compressor_Sizing(params):
     Mc_1m = Mz_1m/np.cos(alpha_1m)
 
     # Station 1 Static Pressure and Temperature
-    T_1m = T0_1m/(1+(gamma-1)*Mc_1m**2/2)
-    P_1m = P0_1m/(1+(gamma-1)*Mc_1m**2/2)**(gamma/(gamma-1))
+    T_1m = T0_1m*REF_AEQ.T_T0(gamma, Mc_1m)
+    P_1m = P0_1m*REF_AEQ.P_P0(gamma, Mc_1m)
 
-    R = (gamma-1)*cp/gamma
+    R = (gamma-1)*Cp/gamma
     rho_1m = P_1m/(R*T_1m)
-    a_1m = np.sqrt((gamma-1)*cp*T_1m)
+    a_1m = m.sqrt((gamma-1)*Cp*T_1m)
     z_1m = Mz_1m*a_1m
     C_1m = Mc_1m*a_1m
 
@@ -51,21 +52,21 @@ def Compressor_Sizing(params):
     z_exit_m = z_1m           # design choice   | at midspan
     C_exit_m = C_1m
 
-    T_exit_m = T0_exit_m - C_exit_m**2/(2*cp)  # | at midspan
+    T_exit_m = T0_exit_m - C_exit_m**2/(2*Cp)  # | at midspan
 
-    a_exit_m = np.sqrt((gamma-1)*cp*T_exit_m)
+    a_exit_m = m.sqrt((gamma-1)*Cp*T_exit_m)
     Mz_exit_m = z_exit_m/a_exit_m
-    Mc_exit_m = Mz_exit_m/np.cos(alpha_exit_m)
+    Mc_exit_m = Mz_exit_m/m.cos(alpha_exit_m)
 
-    P_exit_m = P0_exit_m/(1+(gamma-1)*Mc_exit_m**2/2)**(gamma/(gamma-1))  # | at midspan
+    
+    P_exit_m = P0_exit_m*REF_AEQ.P_P0(gamma, Mc_exit_m)  # | at midspan
     rho_exit_m = P_exit_m/(R*T_exit_m)
 
     # Exit annulus geometry
     A_exit = m_dot/rho_exit_m/z_exit_m
 
-    # TODO
     r_mean_1 = (r_tip_inlet + r_hub_inlet)/2
-    h = A_exit / (4 * np.pi * r_mean_1)
+    h = A_exit / (4 * m.pi * r_mean_1)
 
     r_hub_exit = r_mean_1 - h
     r_tip_exit = r_mean_1 + h
@@ -101,11 +102,22 @@ def Compressor_Sizing(params):
     phi_2m = z_2m/U_2m
     psi_2m = 1 + phi_2m*(np.tan(-beta_2m)-np.tan(alpha_1m))
 
+    T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/Cp
+    T_2m  = T0_2m - C_2m**2/(2*Cp)
+    a_2 = np.sqrt((gamma-1)*Cp*T_2m)
+
+    Mc_2m = C_2m/a_2
+    Mw_2m = W_2m/a_2
+    Mz_2m = z_2m/a_2
+
     # Station 3 stuff
     C_3m = C_1m
     W_3m = W_1m
     U_3m = U_1m
     z_3m = z_1m
+    Mc_3m = Mc_1m
+    Mw_3m = Mw_1m
+    Mz_3m = Mz_1m
     Ctheta_3m = Ctheta_1m
     Wtheta_3m = Wtheta_1m
     alpha_3m = alpha_1m
@@ -113,52 +125,57 @@ def Compressor_Sizing(params):
 
     # Stage metrics
     degR_m = 1 - (Ctheta_1m + Ctheta_2m) / (2*U_1m)
-    D_mr = Compressor_Helpers.D_factor(W_1m, W_2m, Ctheta_1m, Ctheta_2m, solidity_rotor)
-    D_ms = Compressor_Helpers.D_factor(C_2m, C_3m, Ctheta_2m, Ctheta_3m, solidity_stator)
+    D_mr = HELP_Compressor.D_factor(W_1m, W_2m, Ctheta_1m, Ctheta_2m, solidity_rotor)
+    D_ms = HELP_Compressor.D_factor(C_2m, C_3m, Ctheta_2m, Ctheta_3m, solidity_stator)
 
 
-    rps = fullVelTriInfo(C_1m, C_2m, C_3m,
-                         W_1m, W_2m, W_3m,
-                         U_1m, U_2m, U_3m,
-                         z_1m, z_2m, z_3m,
-                        
-                         Ctheta_1m, Ctheta_2m, Ctheta_3m,
-                         Wtheta_1m, Wtheta_2m, Wtheta_3m,
-                        
-                         alpha_1m, alpha_2m, alpha_3m,
-                         beta_1m,  beta_2m,  beta_3m,
-                        
-                         degR_m, D_mr, D_ms,
-                        
-                         phi_2m, psi_2m)
-                        
-    T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/cp
-    T_2m  = T0_2m - C_2m**2/(2*cp)
-    a_2 = np.sqrt((gamma-1)*cp*T_2m)
+    rps = REF_structs.fullVelTriInfo(
+                    C_1m, C_2m, C_3m,
+                    W_1m, W_2m, W_3m,
+                    U_1m, U_2m, U_3m,
+                    z_1m, z_2m, z_3m,
 
-    Mc_2m = C_2m/a_2
+                    Mc_1m, Mc_2m, Mc_3m,
+                    Mw_1m, Mw_2m, Mw_3m,
+                    Mz_1m, Mz_2m, Mz_3m,
+                    
+                    Ctheta_1m, Ctheta_2m, Ctheta_3m,
+                    Wtheta_1m, Wtheta_2m, Wtheta_3m,
+                    
+                    alpha_1m, alpha_2m, alpha_3m,
+                    beta_1m,  beta_2m,  beta_3m,
+                    )
+    
+    compressorStageInfo = {
+        "degR_m" : degR_m,
+        "D_mr"   : D_mr,
+        "D_ms"   : D_ms,
+        "phi_2m" : phi_2m,
+        "psi_2m" : psi_2m,
+    }
 
     temp_rise_total = T0_exit_m - T0_1m
     temp_rise_per_stage = T0_2m - T0_1m
     num_stages_actual = temp_rise_total/temp_rise_per_stage
-    num_stages = np.ceil(num_stages_actual)
+    num_stages = int(np.ceil(num_stages_actual))
     num_stations = num_stages*2 + 1
 
     # stages = framework(num_stages)
     # stations = framework(num_stations)
     # Per Stage State
-    r_hub_vec = np.ones(num_stages+1)
-    r_tip_vec = np.ones(num_stages+1)
-    rho_m_vec = np.ones(num_stages+1)
-    Tr_stages = np.ones(num_stages)
-    Pr_stages = np.ones(num_stages)
-    T0_stages = np.ones(num_stages+1)
-    P0_stages = np.ones(num_stages+1)
-    T0_stages[1] = T0_1m
-    P0_stages[1] = P0_1m
+    r_hub_vec = [1 for i in range(num_stages+1)]
+    r_tip_vec = [1 for i in range(num_stages+1)]
+    rho_m_vec = [1 for i in range(num_stages+1)]
+    T0_stages = [1 for i in range(num_stages+1)]
+    P0_stages = [1 for i in range(num_stages+1)]
+    Tr_stages = [1 for i in range(num_stages)]
+    Pr_stages = [1 for i in range(num_stages)]
+    
+    T0_stages[0] = T0_1m
+    P0_stages[0] = P0_1m
 
-    r_hub_vec[1] = r_hub_inlet
-    r_tip_vec[1] = r_tip_inlet
+    r_hub_vec[0] = r_hub_inlet
+    r_tip_vec[0] = r_tip_inlet
 
     T0_current = T0_1m
     for i in range(num_stages):
@@ -170,14 +187,12 @@ def Compressor_Sizing(params):
         T0_current = T0_next
 
     for i in range(num_stages+1):
-        r_hub_vec[i], r_tip_vec[i], rho_m_vec[i] = Compressor_Helpers.annulus_adjust(T0_stages[i], P0_stages[i], R, cp, gamma, m_dot, rps.C_3m, rps.z_3m, r_mean_1)
-
-
+        r_hub_vec[i], r_tip_vec[i], rho_m_vec[i] = HELP_Compressor.annulus_adjust(T0_stages[i], P0_stages[i], R, Cp, gamma, m_dot, rps.C_3m, rps.z_3m, r_mean_1)
 
     # Compressor Thermodynamics Total Metrics
     Pr_total_actual = np.prod(Pr_stages)
-    Tr_total_actual = T0_stages[-1]/T0_stages[1]
-    P0_rise_total = P0_stages[-1] - P0_stages[1]
+    Tr_total_actual = T0_stages[-1]/T0_stages[0]
+    P0_rise_total = P0_stages[-1] - P0_stages[0]
 
     # Blade Design
     # Supersonic rotor design
@@ -186,7 +201,6 @@ def Compressor_Sizing(params):
     chord_m = 1.0*min_chord_m
 
     i = np.degrees(ttc_m)
-
     dev_ang_m = np.abs(beta_2m-beta_1m) / 4 * np.sqrt(solidity_rotor) + 2
 
     # Camber angle
@@ -199,14 +213,13 @@ def Compressor_Sizing(params):
     num_blades_rotor = 2 * np.pi * r_mean_1 / chord_m
 
     # Subsonic stator design
-    T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/cp
-    T_2m  = T0_2m - C_2m**2/(2*cp)
-    a_2 = np.sqrt((gamma-1)*cp*T_2m)
+    T0_2m = T0_1m + U_1m*(Ctheta_2m-Ctheta_1m)/Cp
+    T_2m  = T0_2m - C_2m**2/(2*Cp)
+    a_2 = np.sqrt((gamma-1)*Cp*T_2m)
 
     Mc_2m = C_2m/a_2
 
-    FF = Compressor_Helpers.Compressor_Free_Vortex(rps, r_hub_vec, r_tip_vec, ang_vel, degR_m, rho_m_vec, cp, R, T0_stages, m_dot, e_c, gamma)
-'''
+    FF = HELP_Compressor.Compressor_Free_Vortex(rps, r_hub_vec, r_tip_vec, ang_vel, degR_m, rho_m_vec, Cp, R, T0_stages, m_dot, e_c, gamma)
 
 def Turbine_Sizing():
     '''
@@ -270,7 +283,7 @@ def Turbine_Sizing():
     Mw_3Rm = 0.8                # TODO find justification for this
 
     # Initial stage
-    velocity_triangles_s1, info_s1 = Turbine_Helpers.Turbine_Stage_Pitchline(
+    velocity_triangles_s1, info_s1 = HELP_Turbine.Turbine_Stage_Pitchline(
         True,
         Mc_2m,
         Mw_3Rm,
@@ -301,7 +314,7 @@ def Turbine_Sizing():
     # print("required power: " + str(req_power_t))
     while not powerReqMet:
         # Calculate triangles and info for new stage
-        velocity_triangles, info = Turbine_Helpers.Turbine_Stage_Pitchline(
+        velocity_triangles, info = HELP_Turbine.Turbine_Stage_Pitchline(
             False,
             Mc_2m_default,
             Mw_3Rm_default,
@@ -324,10 +337,10 @@ def Turbine_Sizing():
         multistage_info.append(info)
         # Updating loop
         stage_idx += 1
-        print("stage power: " + str(info["Powah"]))
+        # print("stage power: " + str(info["Powah"]))
         powerReqMet = True if total_power_generated > req_power_t else False
     
     stage_powers = [stage_info["Powah"] for stage_info in multistage_info]
     print(stage_powers)
 
-Turbine_Sizing()
+# Compressor_Sizing()

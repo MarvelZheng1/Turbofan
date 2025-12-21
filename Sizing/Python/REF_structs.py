@@ -1,6 +1,38 @@
 from dataclasses import dataclass
 
 @dataclass
+class ByComponent:
+    a:   float      # Ambient
+    d:   float      # Diffuser
+    f:   float      # Fan
+    fn:  float      # Fan Nozzle
+    cLP: float      # LP Compressor
+    cHP: float      # HP Compressor
+    b:   float      # Burner
+    tHP: float      # HP Turbine
+    tLP: float      # LP Turbine
+    n:   float      # Nozzle
+
+@dataclass
+class StationTnP:
+    T0: float
+    P0: float
+    
+@dataclass
+class StationThermo:
+    Sa:  StationTnP
+    S15: StationTnP
+    S2:  StationTnP
+    S25: StationTnP
+    S3:  StationTnP
+    S4:  StationTnP
+    S45: StationTnP
+    S5:  StationTnP
+    S6:  StationTnP
+    S7:  StationTnP
+    S8:  StationTnP
+
+@dataclass
 class fullVelTriInfo:
     C_1m: float
     C_2m: float

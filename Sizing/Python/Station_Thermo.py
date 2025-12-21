@@ -1,23 +1,5 @@
-import numpy as np
-from dataclasses import dataclass
-
-@dataclass
-class StationTnP:
-    T0: float
-    P0: float
-@dataclass
-class StationThermo:
-    Sa:  StationTnP
-    S15: StationTnP
-    S2:  StationTnP
-    S25: StationTnP
-    S3:  StationTnP
-    S4:  StationTnP
-    S45: StationTnP
-    S5:  StationTnP
-    S6:  StationTnP
-    S7:  StationTnP
-    S8:  StationTnP
+import math as m
+import REF_structs
 
 def thermoCalcs(params):
     eta    = params["eta"]                      # Efficiencies
@@ -88,11 +70,11 @@ def thermoCalcs(params):
     P_8 = P_0
 
     # ======== Nozzle Exit Velocities ========
-    u_ec = np.sqrt(2*eta.n *(gamma.n /(gamma.n -1))*Rp*T0_7*(1 - (P_8/P0_7)**((gamma.n -1)/gamma.n )))
-    u_ef = np.sqrt(2*eta.fn*(gamma.fn/(gamma.fn-1))*Ra*T0_2*(1 - (P_8/P0_2)**((gamma.fn-1)/gamma.fn)))
+    u_ec = m.sqrt(2*eta.n *(gamma.n /(gamma.n -1))*Rp*T0_7*(1 - (P_8/P0_7)**((gamma.n -1)/gamma.n )))
+    u_ef = m.sqrt(2*eta.fn*(gamma.fn/(gamma.fn-1))*Ra*T0_2*(1 - (P_8/P0_2)**((gamma.fn-1)/gamma.fn)))
 
     # ======== Performance Metrics ========
-    u_a = M_f * np.sqrt(gamma.a*Ra*T_0)
+    u_a = M_f * m.sqrt(gamma.a*Ra*T_0)
     
     ST = (1+fr)*u_ec + bypass*u_ef - (1+bypass)*u_a     # Specific Thrust
     TSFC = fr/ST                                        # Thrust Specific Fuel Consumption
@@ -101,17 +83,31 @@ def thermoCalcs(params):
     eta_0  = eta_p*eta_th    
 
 
-    T0P0 = StationThermo(StationTnP(T_0,   P_0),
-                        StationTnP(T0_15, P0_15),
-                        StationTnP(T0_2,  P0_2),
-                        StationTnP(T0_25, P0_25),
-                        StationTnP(T0_3,  P0_3),
-                        StationTnP(T0_4,  P0_4),
-                        StationTnP(T0_45, P0_45),
-                        StationTnP(T0_5,  P0_5),
-                        StationTnP(T0_6,  P0_6),
-                        StationTnP(T0_7,  P0_7),
-                        StationTnP(T_8,  P_8),
+    T0P0 = REF_structs.StationThermo(
+                        REF_structs.StationTnP(T_0,   P_0),
+                        REF_structs.StationTnP(T0_15, P0_15),
+                        REF_structs.StationTnP(T0_2,  P0_2),
+                        REF_structs.StationTnP(T0_25, P0_25),
+                        REF_structs.StationTnP(T0_3,  P0_3),
+                        REF_structs.StationTnP(T0_4,  P0_4),
+                        REF_structs.StationTnP(T0_45, P0_45),
+                        REF_structs.StationTnP(T0_5,  P0_5),
+                        REF_structs.StationTnP(T0_6,  P0_6),
+                        REF_structs.StationTnP(T0_7,  P0_7),
+                        REF_structs.StationTnP(T_8,  P_8),
                         )
     
-    return[T0P0, [ST, TSFC], [eta_p, eta_th, eta_0]]
+    Cps = REF_structs.ByComponent(
+        None,
+        None,
+        Cp_f,
+        None,
+        Cp_cLP,
+        Cp_cHP,
+        Cp_b,
+        Cp_tHP,
+        Cp_tLP,
+        None
+    )
+
+    return[T0P0, Cps, [ST, TSFC], [eta_p, eta_th, eta_0]]

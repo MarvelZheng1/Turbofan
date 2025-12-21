@@ -1,6 +1,6 @@
 import numpy as np
-import AEQ
-import dataframes
+import REF_AEQ
+import REF_structs
 
 def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1m, P0_1m, r_mean, ang_vel, gamma_t, R_t, Cp_t, m_dot_t):
     # ======== INPUTS ======== 
@@ -20,8 +20,8 @@ def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1
     
     # ======== Pitchline Calcs (turbine-specific station numbers) ========
     T0_2m = T0_1m   # No total temp drop over stator
-    T_2m = AEQ.T_T0(gamma_t, Mc_2m)*T0_2m  
-    a_2m = AEQ.a(gamma_t, R_t, T_2m)
+    T_2m = REF_AEQ.T_T0(gamma_t, Mc_2m)*T0_2m  
+    a_2m = REF_AEQ.a(gamma_t, R_t, T_2m)
 
     C_2m = Mc_2m*a_2m
     
@@ -38,12 +38,12 @@ def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1
     Ctheta_1m = C_1m*np.sin(alpha_1m)
 
     T_1m = T0_1m - C_1m**2/(2*Cp_t)
-    a_1m = AEQ.a(gamma_t, R_t, T_1m)
+    a_1m = REF_AEQ.a(gamma_t, R_t, T_1m)
     Mc_1m = C_1m/a_1m
     
     # Stator Solidity
     optimal_zweifel = 1
-    fake_optimal_stator_solidity = AEQ.sigXzweif(alpha_1m, alpha_2m) / optimal_zweifel
+    fake_optimal_stator_solidity = REF_AEQ.sigXzweif(alpha_1m, alpha_2m) / optimal_zweifel
     Ctheta_mean = (Ctheta_1m + Ctheta_2m)/2
     alpha_2_stagger = np.atan(Ctheta_mean/z_2m)
     real_optimal_stator_solidity = fake_optimal_stator_solidity/np.cos(alpha_2_stagger)
@@ -54,7 +54,7 @@ def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1
         o_s = np.cos(alpha_2m)
     else:
         stator_dev = 0
-        o_s = np.cos(alpha_2m) / AEQ.A_Astar(gamma_t, Mc_2m)
+        o_s = np.cos(alpha_2m) / REF_AEQ.A_Astar(gamma_t, Mc_2m)
 
     # ======== Have you tried spinning? It's a great trick ========
     # Calculating pitchline reference frame tangential velocity U
@@ -92,24 +92,24 @@ def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1
     profileLoss_s = 0.06                # Assumed stator pressure loss coefficient
     
     # A lot of random temperatures and pressures, have fun reading through them lol
-    P_1m = P0_1m * AEQ.P_P0(gamma_t, Mc_1m)
+    P_1m = P0_1m * REF_AEQ.P_P0(gamma_t, Mc_1m)
     P0_2m = -profileLoss_s*(P0_1m - P_1m)+P0_1m
-    P_2m = P0_2m * AEQ.P_P0(gamma_t, Mc_2m)
-    P0_2Rm = P_2m / AEQ.P_P0(gamma_t, Mw_2m)
+    P_2m = P0_2m * REF_AEQ.P_P0(gamma_t, Mc_2m)
+    P0_2Rm = P_2m / REF_AEQ.P_P0(gamma_t, Mw_2m)
     T0_3m = T0_2m + U_2m*(Ctheta_3m-Ctheta_2m)/Cp_t
     T_3m = T0_3m - C_3m**2/(2*Cp_t)
     T0_3Rm = T_3m + W_3m**2/(2*Cp_t)
-    a_3m = AEQ.a(gamma_t, R_t, T_3m)
+    a_3m = REF_AEQ.a(gamma_t, R_t, T_3m)
     Mc_3m = C_3m/a_3m
     
     profileLoss_r = 0.08                # Assumed rotor pressure loss coefficient
     P0_3Rm = -profileLoss_r*(P0_2Rm - P_2m)+P0_2Rm
-    P_3m = P0_3Rm * AEQ.P_P0(gamma_t, Mw_3Rm)
-    P0_3m = P_3m / AEQ.P_P0(gamma_t, Mc_3m)
+    P_3m = P0_3Rm * REF_AEQ.P_P0(gamma_t, Mw_3Rm)
+    P0_3m = P_3m / REF_AEQ.P_P0(gamma_t, Mc_3m)
     
     # Rotor solidity
     optimal_zweifel = 1
-    fake_optimal_rotor_solidity = AEQ.sigXzweif(beta_2m, beta_3m) / optimal_zweifel     # "Optimal" solidity based on Zweifel
+    fake_optimal_rotor_solidity = REF_AEQ.sigXzweif(beta_2m, beta_3m) / optimal_zweifel     # "Optimal" solidity based on Zweifel
     Wtheta_mean = (Wtheta_2m + Wtheta_3m)/2                                             # Average relative swirl
     beta_stagger = np.atan(Wtheta_mean/z_3m)                                            # Stagger angle
     real_optimal_stator_solidity = fake_optimal_rotor_solidity/np.cos(beta_stagger)     # Actual optimal solidity
@@ -124,7 +124,7 @@ def Turbine_Stage_Pitchline(initial, Mc_2m, Mw_3Rm, alpha_1m, schrodinkler, T0_1
     degR_m = 1 - (Ctheta_2m + Ctheta_3m)/(2*U_2m)     # Stage degree of reaction
 
     # ======== OUTPUT ========
-    velocityTriangle = dataframes.fullVelTriInfo(
+    velocityTriangle = REF_structs.fullVelTriInfo(
         C_1m, C_2m, C_3m,
         W_1m, W_2m, W_3m,
         U_1m, U_2m, U_3m,
