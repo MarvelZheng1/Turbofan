@@ -1,4 +1,4 @@
-import math as m
+import numpy as np
 import REF_structs
 
 def thermoCalcs(params):
@@ -70,11 +70,11 @@ def thermoCalcs(params):
     P_8 = P_0
 
     # ======== Nozzle Exit Velocities ========
-    u_ec = m.sqrt(2*eta.n *(gamma.n /(gamma.n -1))*Rp*T0_7*(1 - (P_8/P0_7)**((gamma.n -1)/gamma.n )))
-    u_ef = m.sqrt(2*eta.fn*(gamma.fn/(gamma.fn-1))*Ra*T0_2*(1 - (P_8/P0_2)**((gamma.fn-1)/gamma.fn)))
+    u_ec = np.sqrt(2*eta.n *(gamma.n /(gamma.n -1))*Rp*T0_7*(1 - (P_8/P0_7)**((gamma.n -1)/gamma.n )))
+    u_ef = np.sqrt(2*eta.fn*(gamma.fn/(gamma.fn-1))*Ra*T0_2*(1 - (P_8/P0_2)**((gamma.fn-1)/gamma.fn)))
 
     # ======== Performance Metrics ========
-    u_a = M_f * m.sqrt(gamma.a*Ra*T_0)
+    u_a = M_f * np.sqrt(gamma.a*Ra*T_0)
     
     ST = (1+fr)*u_ec + bypass*u_ef - (1+bypass)*u_a     # Specific Thrust
     TSFC = fr/ST                                        # Thrust Specific Fuel Consumption
