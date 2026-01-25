@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import REF_AEQ
+import REF_structs
 
 def Compressor_Free_Vortex(rps, r_hub_vec_stages, r_tip_vec_stages, ang_vel, degR_m, rho_m_vec_stages, cp, R, T0_stages, m_dot_target, e_c, gamma):
     ## ======== Initial Values ========
@@ -116,18 +117,22 @@ def Compressor_Free_Vortex(rps, r_hub_vec_stages, r_tip_vec_stages, ang_vel, deg
     # plot_tree(r_spans{2}, z_spans{2},       40, 00, 0.1, '-k')
     # plot_tree(r_spans{2}, Ctheta_spans{2},  60, 00, 0.1, '-b')
 
-    ## ======== Return ========
-    # flow_field.Ctheta_spans    = Ctheta_spans
-    # flow_field.z_spans         = z_spans
-    # flow_field.rho_spans       = rho_spans
-    # flow_field.T_spans         = T_spans
-    # flow_field.r_spans         = r_spans
-    # flow_field.r_hub_vec_full  = r_hub_vec_full
-    # flow_field.r_tip_vec_full  = r_tip_vec_full
-    # flow_field.rho_m_vec_full  = rho_m_vec_full
-    # flow_field.degR_spans      = degR_spans
-    # flow_field.num_stations    = full_vec_length
-    # flow_field.num_streamlines = num_streamlines
+    # ======== Return ========
+    flow_field = REF_structs.CompressorField(
+        Ctheta_spans,
+        z_spans,
+        rho_spans,
+        T_spans,
+        r_spans,
+        r_hub_vec_full,
+        r_tip_vec_full,
+        rho_m_vec_full,
+        degR_spans,
+        full_vec_length,
+        num_streamlines
+    )
+
+    return flow_field
 
 
 ## Helper Functions

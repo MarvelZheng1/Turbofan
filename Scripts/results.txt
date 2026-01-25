@@ -1,6 +1,10 @@
 ======== Thrust and Efficiencies ========
-    ST | 894.033 N
+    ST | 919.441 N
   TSFC |   0.000 N
- eta_p |  49.630 %
-eta_th |  35.989 %
- eta_0 |  17.861 %
+ eta_p |  51.772 %
+eta_th |  35.480 %
+ eta_0 |  18.369 %
+
+======== Compressor Annulus Sizing ========
+Inlet Tip Radius |   0.101 m
+Inlet Hub Radius |   0.059 m

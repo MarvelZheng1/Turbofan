@@ -3,7 +3,6 @@ import numpy as np
 import math as m
 import time
 
-import matlab.engine
 import REF_AEQ
 import REF_structs
 import Station_Thermo
@@ -58,7 +57,7 @@ cycle_params = {
     "Ra"     : 287,             # TODO
     "Rp"     : 287,             # TODO
     "QR"     : 45000000,        # TODO
-    "bypass" : 3,               # nondimensional
+    "bypass" : 4,               # nondimensional
     "combustion_temp": 1750,    # TODO
 }
 thermo, Cps, thrust, eta_calc = Station_Thermo.thermoCalcs(cycle_params)
@@ -81,7 +80,6 @@ compressor_params = {
 }
 compressor_info = Component_Sizing.Compressor_Sizing(compressor_params)
 # turbine_info = Component_Sizing.Turbine_Sizing(turbine_params)
-
 # Plots
 T0s = [a.T0 for a in vars(thermo).values()]
 P0s = [a.P0 for a in vars(thermo).values()]
@@ -93,3 +91,7 @@ with open("results.txt", "w") as txt:
     txt.write(" eta_p |{:8.3f} %\n".format(eta_calc[0]*100))
     txt.write("eta_th |{:8.3f} %\n".format(eta_calc[1]*100))
     txt.write(" eta_0 |{:8.3f} %\n".format(eta_calc[2]*100))
+
+    txt.write("\n======== Compressor Annulus Sizing ========\n")
+    txt.write("Inlet Tip Radius |{:8.3f} m\n".format(compressor_info.r_tip_vec_full[0]))
+    txt.write("Inlet Hub Radius |{:8.3f} m\n".format(compressor_info.r_hub_vec_full[0]))

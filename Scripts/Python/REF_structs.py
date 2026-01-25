@@ -70,3 +70,17 @@ class fullVelTriInfo:
     beta_1m: float
     beta_2m: float
     beta_3m: float
+
+@dataclass
+class CompressorField:
+    Ctheta_spans:    list
+    z_spans:         list
+    rho_spans:       list
+    T_spans:         list
+    r_spans:         list
+    r_hub_vec_full:  list
+    r_tip_vec_full:  list
+    rho_m_vec_full:  list
+    degR_spans:      list
+    num_stations:    list
+    num_streamlines: list
