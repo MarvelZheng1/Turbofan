@@ -8,18 +8,11 @@ import math as m
 # r_hub_vec_full = np.ones(full_vec_length)
 # emptyLists[0] = r_hub_vec_full
 
-asdf = np.linspace(10,20,30)
-qwer = 2*asdf
-# print(asdf + qwer)
+asdf = list(range(5))
 
+qwer = asdf * 2
 
-r_mean = 55
-z_1m = 30
-
-b=3
-r = np.linspace(50,60,51)
-
-print(r)
+print(qwer)
 
 # asdf = np.sqrt(r)
 # qwer = 1 + 2*(b*r_mean/z_1m)**2 * (1-(r**2)/(r_mean**2))

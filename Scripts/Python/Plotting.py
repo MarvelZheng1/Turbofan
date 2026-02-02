@@ -1,0 +1,115 @@
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.cm as cm
+
+def cycle(T0, P0):
+    # Setting up the plot
+    fig, axLeft = plt.subplots()
+    plt.title("Station Total Temperatures and Pressures")
+    plt.subplots_adjust(left=0.15, bottom=0.1, right=0.85, top=0.9, wspace=0, hspace=0)
+
+    # Creating x axis
+    stations = [0, 1.5, 2, 2.5, 3, 4, 4.5, 5, 6, 7, 8]
+
+    # Plotting the left axis
+    axLeft.plot(stations, T0, '-ob', label="Temperatures")
+    axLeft.set_ylabel("Total Temperatures")
+    axLeft.set_xlabel("Station Number")
+    plt.legend(loc="upper left")
+
+    # Plotting the right axis
+    axRight = axLeft.twinx()
+    axRight.plot(stations, P0, '-or', label="Pressures")
+    axRight.set_ylabel("Total Pressure")
+    plt.legend(loc="upper right")
+
+def compressor_annulus_spans(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF):
+    fig, axes = plt.subplots(3,1)
+    axes[0].set_title("Degree of Reaction")
+    axes[0].set_ylabel("r (m)")
+    axes[0].set_ylabel("z (m)")
+    
+    axes[1].set_title("C_theta")
+    axes[1].set_ylabel("r (m)")
+    axes[1].set_ylabel("z (m)")
+
+    axes[2].set_title("C_z")
+    axes[2].set_ylabel("r (m)")
+    axes[2].set_ylabel("z (m)")
+
+    x_axis, x_axis_long = annulus_base(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF, axes)
+    
+    data_min = min([min(span) for span in FF.degR_spans]) 
+    data_max = max([max(span) for span in FF.degR_spans])
+    norm = colors.Normalize(vmin=data_min, vmax=data_max)
+    map = cm.ScalarMappable(norm=norm, cmap='turbo')
+
+    for i in range(num_stages):
+        axes[0].scatter([x_axis[i] for _ in range(FF.num_streamlines)], FF.r_spans[i*2], s=None, c=FF.degR_spans[i], cmap='turbo', norm=norm)
+    cbar = plt.colorbar(map, ax=axes[0])
+
+    span(FF.r_spans, FF.Ctheta_spans, FF.num_streamlines, num_stations, x_axis_long, axes[1])
+    span(FF.r_spans, FF.z_spans,      FF.num_streamlines, num_stations, x_axis_long, axes[2])
+
+    axes[0].axis('equal')
+    axes[0].grid('minor')
+
+def compressor_info(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF, Pr_stages, T0_stages, P0_stages):
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
+    x_axis = list(range(1,num_stages+1))
+
+    ax1.plot(x_axis, Pr_stages)
+
+    x_axis = list(range(1,num_stages+2));
+    x_axis = [(i-1)*2*chord_m for i in x_axis]
+
+    x_axis_long = list(range(1,FF.num_stations+1))
+    x_axis_long = [(i-1)*chord_m for i in x_axis_long]
+    
+    ax2.hlines(r_mean_1, 0, (num_stations-1)*chord_m)
+    ax2.plot(x_axis, r_hub_vec, '.-r', x_axis, r_tip_vec, '.-r')
+    ax2.plot(x_axis_long, FF.r_hub_vec_full, '.-k', x_axis_long, FF.r_tip_vec_full, '.-k')
+
+
+    ax2.plot(x_axis, r_hub_vec, '.-r', x_axis, r_tip_vec, '.-r')
+    ax2.plot(x_axis_long, FF.r_hub_vec_full, '.-k', x_axis_long, FF.r_tip_vec_full, '.-k')
+    
+    ax2.axis('equal')
+    
+    ax3.plot(x_axis, P0_stages)
+    ax3_right = ax3.twinx()
+    ax3_right.plot(x_axis, T0_stages)
+
+
+
+
+
+
+
+def annulus_base(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF, axes):
+    x_axis = list(range(1,num_stages+2));
+    x_axis = [(i-1)*2*chord_m for i in x_axis]
+
+    x_axis_long = list(range(1,FF.num_stations+1))
+    x_axis_long = [(i-1)*chord_m for i in x_axis_long]
+
+    for axis in axes:
+        axis.hlines(r_mean_1, 0, (num_stations-1)*chord_m)
+        axis.plot(x_axis, r_hub_vec, '.-r', x_axis, r_tip_vec, '.-r')
+        axis.plot(x_axis_long, FF.r_hub_vec_full, '.-k', x_axis_long, FF.r_tip_vec_full, '.-k')
+    return([x_axis, x_axis_long])
+
+def span(radii, data, num_streamlines, num_stations, x_axis_long, axis):
+    data_min = min([min(span) for span in data]) 
+    data_max = max([max(span) for span in data])
+
+    norm = colors.Normalize(vmin=data_min, vmax=data_max)
+    map = cm.ScalarMappable(norm=norm, cmap='turbo')
+
+    for i in range(num_stations):
+        axis.scatter([x_axis_long[i] for _ in range(num_streamlines)], radii[i], s=None, c=data[i], cmap='turbo', norm=norm)
+    cbar = plt.colorbar(map, ax=axis)
+
+def tree(trunk, branches, root_x, root_y, scale, style, axis):
+    for i in range(len(trunk)):
+        axis.quiver(root_x, root_y + trunk(i), branches(i), 0, scale, style)

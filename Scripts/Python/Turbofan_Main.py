@@ -7,6 +7,8 @@ import REF_AEQ
 import REF_structs
 import Station_Thermo
 import Component_Sizing
+import Plotting as plot
+import matplotlib.pyplot as plt
 
 # Initializing dataclasses for component efficiencies, specific heat ratios, and pressure ratios
 eta = REF_structs.ByComponent(
@@ -14,11 +16,11 @@ eta = REF_structs.ByComponent(
                 0.94, # Diffuser
                 0.85, # Fan
                 0.98, # Fan Nozzle
-                0.83, # LP Compressor
-                0.83, # HP Compressor
+                0.75, # LP Compressor
+                0.75, # HP Compressor
                 1.00, # Burner
-                0.89, # HP Turbime
-                0.89, # LP Turbine
+                0.90, # HP Turbime
+                0.90, # LP Turbine
                 0.98  # Nozzle
 )
 gamma = REF_structs.ByComponent(
@@ -36,11 +38,11 @@ gamma = REF_structs.ByComponent(
 Pr = REF_structs.ByComponent(
                 None,       # Ambient
                 None,       # Diffuser
-                1.2,        # Fan
+                1.6,        # Fan
                 None,       # Fan Nozzle
-                m.sqrt(5),  # LP Compressor
-                m.sqrt(5),  # HP Compressor
-                1,          # Burner
+                10,          # LP Compressor
+                2,          # HP Compressor
+                0.95,          # Burner
                 None,       # HP Turbine
                 None,       # LP Turbine
                 None        # Nozzle
@@ -53,12 +55,12 @@ cycle_params = {
     "Pr"     : Pr,              # nondimensional
     "T_0"    : 298,             # TODO | At ambient, v=0, so T0 = T
     "P_0"    : 101300,          # TODO | At ambient, v=0, so P0 = P
-    "M_f"    : 0.85,            # nondimensional
+    "M_f"    : 0.0,             # nondimensional
     "Ra"     : 287,             # TODO
     "Rp"     : 287,             # TODO
     "QR"     : 45000000,        # TODO
-    "bypass" : 4,               # nondimensional
-    "combustion_temp": 1750,    # TODO
+    "bypass" : 5,               # nondimensional
+    "combustion_temp": 1300,    # TODO
 }
 thermo, Cps, thrust, eta_calc = Station_Thermo.thermoCalcs(cycle_params)
 
@@ -68,7 +70,7 @@ compressor_params = {
     "T0_1"        : thermo.S2.T0,
     "P0_1"        : thermo.S2.P0,
     "Pr"          : Pr.cLP,
-    "e_c"         : 0.9,            # Polytropic Efficiency
+    "e_c"         : 0.99,            # Polytropic Efficiency
     "httrr"       : 0.6,            # Hub-to-tip radius ratio
     "deHaller"    : 0.72,           # De Haller's Criterion value
     "min_Re"      : 300000,         # For blade sizing
@@ -78,20 +80,9 @@ compressor_params = {
     "U_tip_inlet" : 350,            # Inlet rotor tip speed, m/s
     "r_tip_inlet" : 100/1000        # Inlet rotor tip radius, in mm (divided by 1000 to get meters)
 }
+
 compressor_info = Component_Sizing.Compressor_Sizing(compressor_params)
 # turbine_info = Component_Sizing.Turbine_Sizing(turbine_params)
-# Plots
-T0s = [a.T0 for a in vars(thermo).values()]
-P0s = [a.P0 for a in vars(thermo).values()]
 
-with open("results.txt", "w") as txt:
-    txt.write("======== Thrust and Efficiencies ========\n")
-    txt.write("    ST |{:8.3f} N\n".format(thrust[0]))
-    txt.write("  TSFC |{:8.3f} N\n".format(thrust[1]))
-    txt.write(" eta_p |{:8.3f} %\n".format(eta_calc[0]*100))
-    txt.write("eta_th |{:8.3f} %\n".format(eta_calc[1]*100))
-    txt.write(" eta_0 |{:8.3f} %\n".format(eta_calc[2]*100))
 
-    txt.write("\n======== Compressor Annulus Sizing ========\n")
-    txt.write("Inlet Tip Radius |{:8.3f} m\n".format(compressor_info.r_tip_vec_full[0]))
-    txt.write("Inlet Hub Radius |{:8.3f} m\n".format(compressor_info.r_hub_vec_full[0]))
+plt.show()

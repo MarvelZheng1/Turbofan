@@ -6,6 +6,7 @@ import REF_AEQ
 import HELP_Compressor
 import HELP_Turbine
 import REF_structs
+import Plotting as plot
 
 
 def Compressor_Sizing(params):
@@ -58,7 +59,6 @@ def Compressor_Sizing(params):
     Mz_exit_m = z_exit_m/a_exit_m
     Mc_exit_m = Mz_exit_m/m.cos(alpha_exit_m)
 
-    
     P_exit_m = P0_exit_m*REF_AEQ.P_P0(gamma, Mc_exit_m)  # | at midspan
     rho_exit_m = P_exit_m/(R*T_exit_m)
 
@@ -71,7 +71,7 @@ def Compressor_Sizing(params):
     r_hub_exit = r_mean_1 - h
     r_tip_exit = r_mean_1 + h
 
-    # Pitchline calculations
+    # ======== Pitchline calculations ========
     # Design choices TODO
     solidity_rotor = 1
     solidity_stator = 1.25
@@ -194,7 +194,7 @@ def Compressor_Sizing(params):
     Tr_total_actual = T0_stages[-1]/T0_stages[0]
     P0_rise_total = P0_stages[-1] - P0_stages[0]
 
-    # Blade Design
+    # Blade Design TODO
     # Supersonic rotor design
     ttc_m = 0.065
     min_chord_m = min_Re*mu_kin/W_1m       # meters, minimum chord to get reynolds
@@ -220,6 +220,44 @@ def Compressor_Sizing(params):
     Mc_2m = C_2m/a_2
 
     FF = HELP_Compressor.Compressor_Free_Vortex(rps, r_hub_vec, r_tip_vec, ang_vel, degR_m, rho_m_vec, Cp, R, T0_stages, m_dot, e_c, gamma)
+
+    with open("results.txt", "a") as txt:
+        txt.write("\n======== Compressor Information ========\n")
+        txt.write("Ratios:\n")
+        txt.write("    Total Pressure Ratio (design):    {:12.5f}\n".format(Pr_total))
+        txt.write("    Total Pressure Ratio (actual):    {:12.5f}\n".format(Pr_total_actual))
+        txt.write("    Total Temperature Ratio (design): {:12.5f}\n".format(Tr_total))
+        txt.write("    Total Temperature Ratio (actual): {:12.5f}\n".format(Tr_total_actual))
+        txt.write("Values:\n")
+        txt.write("    Temperature Rise (total):         {:12.5f} K\n".format(temp_rise_total))
+        txt.write("    Temperature Rise (per stage):     {:12.5f} K\n".format(temp_rise_per_stage))
+        txt.write("    Pressure Rise (total):            {:12.5f} Pa\n".format(P0_rise_total))
+        txt.write("    Inlet Total Temperature (total):  {:12.5f} K\n".format(T0_stages[0]))
+        txt.write("    Inlet Total Pressure (total):     {:12.5f} kPa\n".format(P0_stages[0]/1000))
+        txt.write("    Exit Total Temperature (total):   {:12.5f} K\n".format(T0_stages[-1]))
+        txt.write("    Exit Total Pressure (total):      {:12.5f} kPa\n".format(P0_stages[-1]/1000))
+        txt.write("Aerodynamics:\n")
+        txt.write("    Rotor Diffusion Factor:           {:12.5f}\n".format(D_mr))
+        txt.write("    Stator Diffusion Factor:          {:12.5f}\n".format(D_ms))
+        txt.write("    Stage Degree of Reaction:         {:12.5f}\n".format(degR_m))
+        txt.write("    De Haller Ratio Used:             {:12.5f}\n".format(deHaller))
+        txt.write("    Rotor Inlet Mach Number:          {:12.5f}\n".format(Mw_1m))
+        txt.write("    Stator Inlet Mach Number:         {:12.5f}\n".format(Mc_2m))
+        txt.write("    Compressor Inlet Mach Number:     {:12.5f}\n".format(Mc_1m))
+        txt.write("    Compressor Outlet Mach Number:    {:12.5f}\n".format(Mc_exit_m))
+        txt.write("Triangles:\n")
+        txt.write("    Rotor Turning:                    {:12.5f} deg\n".format(abs(np.degrees(beta_2m - beta_1m))))
+        txt.write("    Stator Turning:                   {:12.5f} deg\n".format(abs(np.degrees(alpha_1m - alpha_2m))))
+        txt.write("Misc:\n")
+        txt.write("    Number of Stages (calculated):    {:12.5f}\n".format(num_stages_actual))
+        txt.write("    Number of Stages (rounded up):    {:12.5f}\n".format(num_stages))
+        txt.write("    Blade Chord Length:               {:12.5f} m\n".format(chord_m))
+        txt.write("    RPM:                              {:12.5f} rpm\n".format(rpm))
+        txt.write("    Mass Flow:                        {:12.5f} kg/s\n".format(m_dot))
+        txt.write("    Inlet Tip Radius:                 {:12.5f} mm\n".format(FF.r_tip_vec_full[0]*1000))
+
+    plot.compressor_annulus_spans(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF)
+    plot.compressor_info(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF, Pr_stages, T0_stages, P0_stages)
 
     return FF
 

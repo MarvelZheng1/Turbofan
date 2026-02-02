@@ -1,10 +1,48 @@
 ======== Thrust and Efficiencies ========
-    ST | 919.441 N
-  TSFC |   0.000 N
- eta_p |  51.772 %
-eta_th |  35.480 %
- eta_0 |  18.369 %
+Specific Thrust                  | 1916.74191 N
+Core Mass Flow Rate              |  5.80180 kg
+Thrust Specific Fuel Consumption |  0.00000 N
+Polytropic Efficiency            |  0.00000 %
+Isentropic Efficiency            | 83.92019 %
+Total Efficiency                 |  0.00000 %
 
-======== Compressor Annulus Sizing ========
-Inlet Tip Radius |   0.101 m
-Inlet Hub Radius |   0.059 m
+Total Thrust                     | 2500.00000 lbf
+Core Thrust                      | 585.39167 lbf
+Bypass Thrust                    | 1914.60833 lbf
+
+Core Exit Velocity               | 445.10090 m/s
+Bypass Exit Velocity             | 293.58480 m/s
+
+======== Compressor Information ========
+Ratios:
+    Total Pressure Ratio (design):        10.00000
+    Total Pressure Ratio (actual):        11.39095
+    Total Temperature Ratio (design):      1.94357
+    Total Temperature Ratio (actual):      2.01801
+Values:
+    Temperature Rise (total):            328.72749 K
+    Temperature Rise (per stage):         32.24196 K
+    Pressure Rise (total):            1684165.19311 Pa
+    Inlet Total Temperature (total):     348.38680 K
+    Inlet Total Pressure (total):        162.08000 kPa
+    Exit Total Temperature (total):      703.04836 K
+    Exit Total Pressure (total):        1846.24519 kPa
+Aerodynamics:
+    Rotor Diffusion Factor:                0.51371
+    Stator Diffusion Factor:               0.46350
+    Stage Degree of Reaction:              0.45530
+    De Haller Ratio Used:                  0.72000
+    Rotor Inlet Mach Number:               0.67903
+    Stator Inlet Mach Number:              0.71616
+    Compressor Inlet Mach Number:          0.51962
+    Compressor Outlet Mach Number:         0.36793
+Triangles:
+    Rotor Turning:                        25.48188 deg
+    Stator Turning:                       22.05915 deg
+Misc:
+    Number of Stages (calculated):        10.19564
+    Number of Stages (rounded up):        11.00000
+    Blade Chord Length:                    0.01770 m
+    RPM:                               33422.53805 rpm
+    Mass Flow:                             4.68643 kg/s
+    Inlet Tip Radius:                    100.54117 mm

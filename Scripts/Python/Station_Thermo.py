@@ -1,8 +1,10 @@
 import numpy as np
 import REF_structs
+import REF_AEQ as AEQ
+import Plotting as plot
 
 def thermoCalcs(params):
-    eta    = params["eta"]                      # Efficiencies
+    eta    = params["eta"]                      # Isetronpic efficiencies
     gamma  = params["gamma"]                    # Specific heat ratios
     Pr     = params["Pr"]                       # Design pressure ratios
     T_0    = params["T_0"]                      # Ambient temp
@@ -16,7 +18,7 @@ def thermoCalcs(params):
 
     # lmao who cares about station 1 am i right (???)
     # ======== Station 1.5: Diffuser Outlet /Fan Inlet ========
-    T0_15 = T_0*(1 + (gamma.a-1)/2 * M_f**2)
+    T0_15 = T_0/AEQ.T_T0(gamma.a, M_f)
     P0_15 = P_0*(1 + eta.d*(T0_15/T_0 - 1))**(gamma.d/(gamma.d-1))
 
     # ======== Station 2: Fan Outlet/LP Compressor Inlet ========
@@ -48,15 +50,17 @@ def thermoCalcs(params):
     # ======== Station 4.5: HP Turbine Outlet/LP Turbine Inlet ========
     Cp_tHP = (Rp*gamma.tHP)/(gamma.tHP-1)     # Specific heat of turbine
 
-    T0_45 = ((1+fr)*T0_4*Cp_tHP - Cp_cHP*(T0_3-T0_25)) / ((1+fr)*Cp_tHP)
+    # T0_45 = ((1+fr)*T0_4*Cp_tHP - Cp_cHP*(T0_3-T0_25)) / ((1+fr)*Cp_tHP)
+    T0_45 = 1/(1+fr) * Cp_cHP/Cp_tHP * (T0_25 - T0_3) + T0_4
     P0_45 = P0_4*(1 - 1/eta.tHP*(1 - T0_45/T0_4))**(gamma.tHP/(gamma.tHP-1))
 
     # ======== Station 5: LP Turbine Outlet/Nozzle Inlet ========
     Cp_tLP = (Rp*gamma.tLP)/(gamma.tLP-1)     # Specific heat of turbine
 
-    T0_5 = ((1+fr)*T0_45*Cp_tLP - Cp_cLP*(T0_25-T0_2) - bypass*Cp_f*(T0_2-T0_15)) / ((1+fr)*Cp_tLP)
+    # T0_5 = ((1+fr)*T0_45*Cp_tLP - Cp_cLP*(T0_25-T0_2) - bypass*Cp_f*(T0_2-T0_15)) / ((1+fr)*Cp_tLP)
+    T0_5 = (Cp_cLP*(T0_25-T0_3) + bypass*Cp_f*(T0_15-T0_2))/((1+fr)*Cp_tLP) + T0_45
     P0_5 = P0_45*(1 - 1/eta.tLP*(1 - T0_5/T0_45))**(gamma.tLP/(gamma.tLP-1))
-
+    
     # ======== Station 6: Afterburner (there is none lmao) ========
     T0_6 = T0_5
     P0_6 = P0_5
@@ -77,11 +81,13 @@ def thermoCalcs(params):
     u_a = M_f * np.sqrt(gamma.a*Ra*T_0)
     
     ST = (1+fr)*u_ec + bypass*u_ef - (1+bypass)*u_a     # Specific Thrust
+    ST_core = (1+fr)*u_ec - u_a 
+    ST_bypass = bypass*u_ef - bypass*u_a
+
     TSFC = fr/ST                                        # Thrust Specific Fuel Consumption
     eta_p  = ST*u_a / ((1+fr)*((u_ec**2)/2) + bypass*((u_ef**2)/2) - (1+bypass)*((u_a**2)/2))     # Propulsive Efficiency
     eta_th = ((1+fr)*((u_ec**2)/2) + bypass*((u_ef**2)/2) - (1+bypass)*((u_a**2)/2)) / (fr*QR)    # Thermal Efficiency
-    eta_0  = eta_p*eta_th    
-
+    eta_0  = eta_p*eta_th
 
     T0P0 = REF_structs.StationThermo(
                         REF_structs.StationTnP(T_0,   P_0),
@@ -109,5 +115,33 @@ def thermoCalcs(params):
         Cp_tLP,
         None
     )
+
+    thrust_target = 2500*4.44822
+
+    m_dot_core_inlet = thrust_target/ST
+
+    # print(fr)
+
+    Total_Thrust = m_dot_core_inlet*ST / 4.44822
+    Core_Thrust = m_dot_core_inlet * ST_core / 4.44822
+    Bypass_Thrust = m_dot_core_inlet * ST_bypass / 4.44822
+
+    with open("results.txt", "w") as txt:
+        txt.write("======== Thrust and Efficiencies ========\n")
+        txt.write("Specific Thrust                  | {:8.5f} N\n".format(ST))
+        txt.write("Core Mass Flow Rate              | {:8.5f} kg\n".format(m_dot_core_inlet))
+        txt.write("Thrust Specific Fuel Consumption | {:8.5f} N\n".format(TSFC))
+        txt.write("Polytropic Efficiency            | {:8.5f} %\n".format(eta_p*100))
+        txt.write("Isentropic Efficiency            | {:8.5f} %\n".format(eta_th*100))
+        txt.write("Total Efficiency                 | {:8.5f} %\n\n".format(eta_0*100))
+        txt.write("Total Thrust                     | {:8.5f} lbf\n".format(Total_Thrust))
+        txt.write("Core Thrust                      | {:8.5f} lbf\n".format(Core_Thrust))
+        txt.write("Bypass Thrust                    | {:8.5f} lbf\n\n".format(Bypass_Thrust))
+        txt.write("Core Exit Velocity               | {:8.5f} m/s\n".format(u_ec))
+        txt.write("Bypass Exit Velocity             | {:8.5f} m/s\n".format(u_ef))
+
+    T0 = [a.T0 for a in vars(T0P0).values()]
+    P0 = [a.P0 for a in vars(T0P0).values()]
+    plot.cycle(T0, P0)
 
     return[T0P0, Cps, [ST, TSFC], [eta_p, eta_th, eta_0]]
