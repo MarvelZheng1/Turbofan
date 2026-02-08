@@ -40,8 +40,8 @@ Pr = REF_structs.ByComponent(
                 None,       # Diffuser
                 1.6,        # Fan
                 None,       # Fan Nozzle
-                10,          # LP Compressor
-                2,          # HP Compressor
+                5,          # LP Compressor
+                5,          # HP Compressor
                 0.95,          # Burner
                 None,       # HP Turbine
                 None,       # LP Turbine
@@ -62,7 +62,7 @@ cycle_params = {
     "bypass" : 5,               # nondimensional
     "combustion_temp": 1300,    # TODO
 }
-thermo, Cps, thrust, eta_calc = Station_Thermo.thermoCalcs(cycle_params)
+thermo, Cps, thrust, eta_calc, m_dot_core = Station_Thermo.thermoCalcs(cycle_params)
 
 compressor_params = {
     "gamma"       : gamma.cLP,
@@ -71,18 +71,17 @@ compressor_params = {
     "P0_1"        : thermo.S2.P0,
     "Pr"          : Pr.cLP,
     "e_c"         : 0.99,            # Polytropic Efficiency
-    "httrr"       : 0.6,            # Hub-to-tip radius ratio
+    "httrr"       : 0.8,            # Hub-to-tip radius ratio
     "deHaller"    : 0.72,           # De Haller's Criterion value
     "min_Re"      : 300000,         # For blade sizing
     "mu_kin"      : 1.46e-5,        # Kinematic viscosity
     "alpha_1m"    : 30,             # Inlet absolute flow angle, in degrees
     "Mz_1m"       : 0.45,           # Inlet axial mach number
     "U_tip_inlet" : 350,            # Inlet rotor tip speed, m/s
-    "r_tip_inlet" : 100/1000        # Inlet rotor tip radius, in mm (divided by 1000 to get meters)
+    "m_dot_core"  : m_dot_core
 }
 
 compressor_info = Component_Sizing.Compressor_Sizing(compressor_params)
 # turbine_info = Component_Sizing.Turbine_Sizing(turbine_params)
-
 
 plt.show()

@@ -23,7 +23,7 @@ def Compressor_Sizing(params):
     alpha_1m    = np.radians(params["alpha_1m"])
     Mz_1m       = params["Mz_1m"]
     U_tip_inlet = params["U_tip_inlet"]
-    r_tip_inlet = params["r_tip_inlet"]
+    m_dot       = params["m_dot_core"]
 
     # Compressor inlet conditions
     Mc_1m = Mz_1m/np.cos(alpha_1m)
@@ -39,9 +39,9 @@ def Compressor_Sizing(params):
     C_1m = Mc_1m*a_1m
 
     # Initial inlet annulus geometry, assume constant spanwise distributions
+    A_inlet = m_dot/rho_1m/z_1m
+    r_tip_inlet = np.sqrt(A_inlet/(np.pi*(1-httrr**2)))
     r_hub_inlet = r_tip_inlet*httrr
-    A_1 = (r_tip_inlet**2 - r_hub_inlet**2)*np.pi
-    m_dot = rho_1m*z_1m*A_1
 
     # Compressor exit conditions
     Tr_total = Pr_total**((gamma-1)/(e_c*gamma))
@@ -231,7 +231,7 @@ def Compressor_Sizing(params):
         txt.write("Values:\n")
         txt.write("    Temperature Rise (total):         {:12.5f} K\n".format(temp_rise_total))
         txt.write("    Temperature Rise (per stage):     {:12.5f} K\n".format(temp_rise_per_stage))
-        txt.write("    Pressure Rise (total):            {:12.5f} Pa\n".format(P0_rise_total))
+        txt.write("    Pressure Rise (total):            {:12.5f} kPa\n".format(P0_rise_total/1000))
         txt.write("    Inlet Total Temperature (total):  {:12.5f} K\n".format(T0_stages[0]))
         txt.write("    Inlet Total Pressure (total):     {:12.5f} kPa\n".format(P0_stages[0]/1000))
         txt.write("    Exit Total Temperature (total):   {:12.5f} K\n".format(T0_stages[-1]))
@@ -254,7 +254,7 @@ def Compressor_Sizing(params):
         txt.write("    Blade Chord Length:               {:12.5f} m\n".format(chord_m))
         txt.write("    RPM:                              {:12.5f} rpm\n".format(rpm))
         txt.write("    Mass Flow:                        {:12.5f} kg/s\n".format(m_dot))
-        txt.write("    Inlet Tip Radius:                 {:12.5f} mm\n".format(FF.r_tip_vec_full[0]*1000))
+        txt.write("    Inlet Tip Radius:                 {:12.5f} mm ({:.5f} in)\n".format(FF.r_tip_vec_full[0]*1000, FF.r_tip_vec_full[0]*1000/25.4))
 
     plot.compressor_annulus_spans(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF)
     plot.compressor_info(num_stages, num_stations, chord_m, r_mean_1, r_hub_vec, r_tip_vec, FF, Pr_stages, T0_stages, P0_stages)
