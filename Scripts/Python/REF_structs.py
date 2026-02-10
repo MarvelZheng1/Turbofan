@@ -84,3 +84,11 @@ class CompressorField:
     degR_spans:      list
     num_stations:    list
     num_streamlines: list
+
+@dataclass
+class pts:
+    betas: list
+    x_coords: list
+    y_coords: list
+    R_new = float
+    Ct = int
