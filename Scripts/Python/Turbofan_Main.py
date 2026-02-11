@@ -40,8 +40,8 @@ Pr = REF_structs.ByComponent(
                 None,       # Diffuser
                 1.6,        # Fan
                 None,       # Fan Nozzle
-                5,          # LP Compressor
-                5,          # HP Compressor
+                10,         # LP Compressor
+                2,          # HP Compressor
                 0.95,          # Burner
                 None,       # HP Turbine
                 None,       # LP Turbine
