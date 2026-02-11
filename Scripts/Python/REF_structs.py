@@ -92,4 +92,11 @@ class pts:
     y_coords: list
     R_new = float
     Ct = int
-    
+
+@dataclass
+class params:
+    beta_IN: float
+    beta_OUT: float
+    ep_IN: float
+    ep_OUT: float
+    zeta: float
