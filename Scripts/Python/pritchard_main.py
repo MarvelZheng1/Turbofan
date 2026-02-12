@@ -2,10 +2,15 @@ import math as m
 import warnings
 import pritchardPoints
 import pritchardCurves
-C:\Users\josie\Documents\PURPL\Turbojet\Turbofan\Scripts\Python\pritchard_main.py
+from REF_structs import params, parameters, blade, pts
+
 def deg2rad(degrees):
     radians = degrees/180*m.pi
     return(radians)
+
+def rad2deg(radians):
+    degrees = radians*180/m.pi
+    return(degrees)
 
 def pritchard_main(params):
     failcode = "success!"
@@ -59,11 +64,35 @@ def pritchard_main(params):
 
     #Extra params
     blade["parameters"]["R"] = params["R"]
-    blade["paramters"] = params
+    blade["parameters"] = params
     blade["parameters"]["o"] = o
+    blade["parameters"]["pitch"] = 2*m.pi*params["R"]/params["N_B"]
+    blade["parameters"]["t_max"] = max_t(blade)
+    blade["parameters"]["t_min"] = min_t(blade)
+    if blade["parameters"]["t_min"] < 1:
+        failcode = "blade too thin"
+    
+    blade["parameters"]["zweifel"] = (4*m.pi*params["R"]) / (params["Cx"]*params["N_B"]) * m.sin(params["beta_IN"] - params["beta_OUT"]) * m.cos(params["beta_OUT"]) / m.cos(params["beta_IN"])
+    blade["parameters"]["blockage_IN"] = 2 * params["R_LE"] / blade["params"]["pitch"] * m.cos(params["beta_IN"]) * 100
+    blade["parameters"]["blockage_OUT"] = 2*params["R_TE"] / (blade["parameters"]["pitch"] * m.cos(params["beta_OUT"])) * 100 
+    blade["parameters"]["chord"] = m.sqrt(params["Ct"]^2 + params["Cx"]^2)
+    blade["parameters"]["calc_ttc"] = blade["parameters"]["t_max"] / blade["parameters"]["chord"]
+
+    """""
+    Notes from 2/11 for 2/12:
+    -Continued on conversion to python with dictionaries
+    -Wanted to wait to figure out dataclasses until in person
 
 
+    """
+    
 
-        
+    #unconverted matlab copy paste
+    blade.parameters.pitch_to_chord = blade.parameters.pitch/blade.parameters.chord;    
+    blade.parameters.height_to_chord = blade.parameters.blade_height/blade.parameters.chord;
 
-            
+    blade.parameters.beta_IN = rad2deg(blade.parameters.beta_IN);
+    blade.parameters.beta_OUT = rad2deg(blade.parameters.beta_OUT);
+    blade.parameters.ep_IN = rad2deg(blade.parameters.ep_IN);
+    blade.parameters.ep_OUT = rad2deg(blade.parameters.ep_OUT);
+    blade.parameters.zeta = rad2deg(blade.parameters.zeta); 

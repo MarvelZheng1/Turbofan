@@ -100,3 +100,23 @@ class params:
     ep_IN: float
     ep_OUT: float
     zeta: float
+    Ct: float
+    Cx: float
+    N_B: float
+    R: float
+    R_TE: float
+
+@dataclass 
+class parameters:
+    pitch: float
+    t_max: float
+    t_min: float
+
+@dataclass
+class blade:
+    failcode: str
+    x_comb: float
+    y_comb: float
+    x_thicc: float
+    y_thicc: float
+
