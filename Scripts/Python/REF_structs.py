@@ -92,3 +92,37 @@ class pts:
     y_coords: list
     R_new = float
     Ct = int
+
+@dataclass
+class params:
+    beta_IN: float
+    beta_OUT: float
+    ep_IN: float
+    ep_OUT: float
+    zeta: float
+    Ct: float
+    Cx: float
+    N_B: float
+    R: float
+    R_TE: float
+
+@dataclass 
+class parameters:
+    pitch: float
+    t_max: float
+    t_min: float
+    R: float
+    blockage_IN: float
+    blockage_OUT: float
+    zweifel: float
+    chord: float
+    calc_ttc: float
+
+@dataclass
+class blade:
+    failcode: str
+    x_comb: float
+    y_comb: float
+    x_thicc: list
+    y_thicc: list
+
